@@ -1,0 +1,25 @@
+# 데이터 (용량 큼, GitHub에 올리면 안 됨)
+data/
+*.zip
+*.irx542
+
+# 모델 weights
+models/seg/*.pt
+models/cls/*.pt
+runs/
+
+# Python
+venv/
+__pycache__/
+*.pyc
+*.egg-info/
+
+# OS
+.DS_Store
+*.log
+
+# IDE
+.vscode/
+.idea/
+*.pt
+.claude/

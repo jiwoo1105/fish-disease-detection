@@ -1,0 +1,144 @@
+# 넙치 질병 탐지 시스템 - 클래스 및 매핑 설정
+
+# Stage 2: 다중 증상 분류 클래스
+symptom_classes:
+  0: normal
+  1: hemorrhage      # 출혈 (symptom 1,2)
+  2: white_spot      # 백점 (symptom 10)
+  3: tumor           # 반점/결절 (symptom 4)
+  4: color_change    # 체색변화 (symptom 3)
+  5: emaciation      # 여윔 (symptom 22)
+  6: ulcer           # 궤양 (symptom 11)
+
+# AIHub symptom 코드 → 클래스 매핑
+symptom_code_map:
+  1: hemorrhage       # 출혈_체표
+  2: hemorrhage       # 출혈_지느러미
+  3: color_change     # 체색변화
+  4: tumor            # 반점/결절
+  6: null             # 안구돌출 (제외)
+  8: null             # 복부팽만 (제외)
+  9: null             # 아가미이상 (제외)
+  10: white_spot      # 백점
+  11: ulcer           # 궤양
+  12: ulcer           # 지느러미부식 → 궤양으로 통합
+  22: emaciation      # 여윔
+  29: null            # 기타증상 (제외)
+
+# 클래스별 데이터 밸런싱 목표
+balance_targets:
+  normal: 5000
+  hemorrhage: 5000
+  white_spot: 5000
+  tumor: 2400         # 전체 사용
+  color_change: 5000
+  emaciation: 2000    # 증강 포함
+  ulcer: 2000         # 증강 포함
+
+# 증상 → 질병 매핑
+symptom_disease_map:
+  white_spot:
+    - name: 스쿠티카병
+      probability: 0.7
+      contagious: true
+    - name: 백점병
+      probability: 0.3
+      contagious: true
+  hemorrhage:
+    - name: VHS(바이러스성출혈성패혈증)
+      probability: 0.4
+      contagious: true
+    - name: 비브리오병
+      probability: 0.35
+      contagious: true
+    - name: 연쇄구균증
+      probability: 0.25
+      contagious: true
+  color_change:
+    - name: 스쿠티카병
+      probability: 0.3
+      contagious: true
+    - name: 비브리오병
+      probability: 0.3
+      contagious: true
+    - name: 기타
+      probability: 0.4
+      contagious: false
+  tumor:
+    - name: 림포시스티스병
+      probability: 0.9
+      contagious: false
+  ulcer:
+    - name: 비브리오병
+      probability: 0.6
+      contagious: true
+    - name: 에드워드병
+      probability: 0.4
+      contagious: true
+  emaciation:
+    - name: 여윔병
+      probability: 0.8
+      contagious: false
+
+# 질병 → 대응 가이드
+disease_response:
+  스쿠티카병:
+    action: LOWER_TEMPERATURE
+    temperature: "18도 이하로 낮추기"
+    detail: "수온이 높을수록 충의 증식과 폐사 증가. 즉시 감염 개체 격리, 사육밀도 낮추기."
+    urgency: immediate
+    isolate: true
+  VHS(바이러스성출혈성패혈증):
+    action: RAISE_TEMPERATURE
+    temperature: "20도 이상으로 올리기"
+    detail: "저수온기 질병. 수온 15도 이상에서 폐사율 감소. 감염 수조 격리, 기구 소독."
+    urgency: immediate
+    isolate: true
+  비브리오병:
+    action: ISOLATE_AND_TREAT
+    temperature: "유지"
+    detail: "감염 어체 격리, 항생제 투여 고려. 수질 관리 강화."
+    urgency: danger
+    isolate: true
+  연쇄구균증:
+    action: ISOLATE_AND_TREAT
+    temperature: "유지"
+    detail: "감염 어체 격리. 수온 관리 및 항생제 치료."
+    urgency: danger
+    isolate: true
+  림포시스티스병:
+    action: MONITOR
+    temperature: "유지"
+    detail: "자연 치유 가능. 스트레스 줄이고 수질 관리에 집중."
+    urgency: watch
+    isolate: false
+  여윔병:
+    action: IMPROVE_NUTRITION
+    temperature: "유지"
+    detail: "사료 품질/양 확인. 밀도 줄이기."
+    urgency: watch
+    isolate: false
+  백점병:
+    action: TREAT
+    temperature: "수온 점진적 상승 (25~28도)"
+    detail: "약욕 처리. 수질 관리 강화."
+    urgency: danger
+    isolate: true
+
+# 위험도 점수 (증상별 심각도)
+symptom_severity:
+  normal: 0
+  color_change: 1
+  emaciation: 2
+  tumor: 2
+  hemorrhage: 3
+  white_spot: 3
+  ulcer: 4
+
+# 위험도 등급 기준
+risk_thresholds:
+  watch: 1.5       # score >= 1.5
+  danger: 3.0      # score >= 3.0
+  immediate: 3.5   # score >= 3.5
+  tank_disease_ratio_danger: 0.15
+  tank_disease_ratio_immediate: 0.30
