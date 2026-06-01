@@ -6,13 +6,17 @@ Stage 1: 물고기 Segmentation 학습
 
 import os
 import shutil
+import torch
+from pathlib import Path
 from ultralytics import YOLO
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
 TARGET_MAP50 = 0.85
 MAX_ROUNDS = 5
-DATA_YAML = "data/processed/segmentation/data.yaml"
-MODEL_SAVE_DIR = "models/seg"
-DEVICE = "cuda"
+DATA_YAML = str(PROJECT_ROOT / "data/processed/segmentation/data.yaml")
+MODEL_SAVE_DIR = str(PROJECT_ROOT / "models/seg")
+DEVICE = "cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu"
 
 ROUND_CONFIGS = [
     {"model": "yolo26n-seg.pt", "epochs": 100, "imgsz": 640, "batch": 64, "lr0": 0.01, "patience": 20},

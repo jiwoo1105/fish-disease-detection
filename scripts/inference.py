@@ -14,16 +14,23 @@ import json
 import time
 from pathlib import Path
 
+import sys
 import cv2
 import numpy as np
 from ultralytics import YOLO
 
+# import 경로 설정 (어디서 실행해도 동작하도록)
+SCRIPTS_DIR = Path(__file__).resolve().parent
+PROJECT_ROOT = SCRIPTS_DIR.parent
+if str(SCRIPTS_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPTS_DIR))
+
 from disease_mapper import map_symptom_to_disease
 from risk_scorer import score_fish, score_tank
 
-# 모델 경로
-SEG_MODEL = "models/seg/best_seg.pt"
-CLS_MODEL = "models/cls/best_cls.pt"
+# 모델 경로 (프로젝트 루트 기준 절대 경로)
+SEG_MODEL = str(PROJECT_ROOT / "models/seg/best_seg.pt")
+CLS_MODEL = str(PROJECT_ROOT / "models/cls/best_cls.pt")
 CLS_IMGSZ = 224
 
 

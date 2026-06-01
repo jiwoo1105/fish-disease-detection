@@ -40,7 +40,18 @@ seg_model, cls_model = None, None
 @app.on_event("startup")
 async def startup():
     global seg_model, cls_model
-    seg_model, cls_model = load_models()
+    from pathlib import Path
+    project_root = Path(__file__).resolve().parent.parent
+    seg_path = str(project_root / "models/seg/best_seg.pt")
+    cls_path = str(project_root / "models/cls/best_cls.pt")
+
+    if not Path(seg_path).exists() or not Path(cls_path).exists():
+        print(f"WARNING: Model files not found. Server will start without models.")
+        print(f"  Seg: {seg_path} ({'EXISTS' if Path(seg_path).exists() else 'MISSING'})")
+        print(f"  Cls: {cls_path} ({'EXISTS' if Path(cls_path).exists() else 'MISSING'})")
+        return
+
+    seg_model, cls_model = load_models(seg_path, cls_path)
 
 
 @app.get("/api/health")

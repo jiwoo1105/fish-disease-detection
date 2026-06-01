@@ -6,13 +6,17 @@ Stage 2: 다중 증상 분류 학습
 
 import os
 import shutil
+import torch
+from pathlib import Path
 from ultralytics import YOLO
 
-TARGET_ACCURACY = 0.85
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+
+TARGET_ACCURACY = 0.90
 MAX_ROUNDS = 5
-DATA_DIR = "data/processed/classification"
-MODEL_SAVE_DIR = "models/cls"
-DEVICE = "cuda"
+DATA_DIR = str(PROJECT_ROOT / "data/processed/classification")
+MODEL_SAVE_DIR = str(PROJECT_ROOT / "models/cls")
+DEVICE = "cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu"
 
 ROUND_CONFIGS = [
     {"model": "yolo26n-cls.pt", "epochs": 50, "imgsz": 224, "batch": 256, "lr0": 0.01, "patience": 15},

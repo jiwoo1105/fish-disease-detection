@@ -24,12 +24,12 @@ import yaml
 random.seed(42)
 
 # ============================================================
-# 설정 로드
+# 설정 로드 (프로젝트 루트 기준 절대 경로)
 # ============================================================
-BASE_DIR = Path("data/301.넙치 질병 데이터/01-1.정식개방데이터")
-SEG_DIR = Path("data/processed/segmentation")
-CLS_DIR = Path("data/processed/classification")
-CONFIG_PATH = Path("configs/classes.yaml")
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+SEG_DIR = PROJECT_ROOT / "data/processed/segmentation"
+CLS_DIR = PROJECT_ROOT / "data/processed/classification"
+CONFIG_PATH = PROJECT_ROOT / "configs/classes.yaml"
 
 with open(CONFIG_PATH) as f:
     CONFIG = yaml.safe_load(f)
@@ -39,16 +39,44 @@ BALANCE_TARGETS = CONFIG["balance_targets"]
 SEG_IMGSZ = 1280  # seg용 리사이즈
 CLS_IMGSZ = 224   # cls용 크롭 리사이즈
 
-SPLITS = {
-    "train": {
-        "label_dir": BASE_DIR / "Training/02.라벨링데이터/TL_1. RGB Data",
-        "image_zip": BASE_DIR / "Training/01.원천데이터/TS_1. RGB Data_1.zip",
-    },
-    "val": {
-        "label_dir": BASE_DIR / "Validation/02.라벨링데이터/VL_1. RGB Data",
-        "image_zip": BASE_DIR / "Validation/01.원천데이터/VS_1. RGB Data.zip",
-    },
-}
+# 데이터 경로 자동 탐색 (AIHub 원본 구조 또는 서버 flat 구조 둘 다 지원)
+def find_data_paths():
+    """데이터 경로 자동 탐색"""
+    data_dir = PROJECT_ROOT / "data"
+
+    # 경로 후보 1: AIHub 원본 구조 (로컬)
+    aihub_base = data_dir / "301.넙치 질병 데이터/01-1.정식개방데이터"
+    if aihub_base.exists():
+        return {
+            "train": {
+                "label_dir": aihub_base / "Training/02.라벨링데이터/TL_1. RGB Data",
+                "image_zip": aihub_base / "Training/01.원천데이터/TS_1. RGB Data_1.zip",
+            },
+            "val": {
+                "label_dir": aihub_base / "Validation/02.라벨링데이터/VL_1. RGB Data",
+                "image_zip": aihub_base / "Validation/01.원천데이터/VS_1. RGB Data.zip",
+            },
+        }
+
+    # 경로 후보 2: 서버 flat 구조
+    # labels: data/labels/train/TL_1. RGB Data/*.json
+    # images: data/TS_1.zip, data/VS_1.zip
+    train_label = data_dir / "labels/train/TL_1. RGB Data"
+    if not train_label.exists():
+        train_label = data_dir / "labels/train"
+    val_label = data_dir / "labels/val/VL_1. RGB Data"
+    if not val_label.exists():
+        val_label = data_dir / "labels/val"
+
+    train_zip = data_dir / "TS_1.zip"
+    val_zip = data_dir / "VS_1.zip"
+
+    return {
+        "train": {"label_dir": train_label, "image_zip": train_zip},
+        "val": {"label_dir": val_label, "image_zip": val_zip},
+    }
+
+SPLITS = find_data_paths()
 
 
 def get_dominant_symptom(data):
