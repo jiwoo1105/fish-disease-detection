@@ -66,6 +66,9 @@ async def health():
 @app.post("/api/analyze")
 async def analyze(file: UploadFile = File(...)):
     """이미지 업로드 → 질병 분석 결과 반환"""
+    if seg_model is None or cls_model is None:
+        raise HTTPException(503, "모델이 로드되지 않았습니다. 서버를 재시작하세요.")
+
     if not file.content_type.startswith("image/"):
         raise HTTPException(400, "이미지 파일만 업로드 가능합니다")
 

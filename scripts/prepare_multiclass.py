@@ -258,29 +258,34 @@ def process_split(split, label_dir, image_zip):
 
             # === Seg: 리사이즈 이미지 저장 ===
             seg_img_path = seg_img_dir / (image_name + ".JPG")
+            img_saved = False
             if not seg_img_path.exists():
                 resized = resize_image_bytes(img_bytes, SEG_IMGSZ)
                 if resized:
                     with open(seg_img_path, "wb") as f:
                         f.write(resized)
+                    img_saved = True
+            else:
+                img_saved = True
 
-            # === Seg: YOLO 라벨 (bbox → 정규화) ===
-            lines = []
-            for ann in data.get("annotations", []):
-                bbox = ann.get("bbox", [])
-                if len(bbox) != 4:
-                    continue
-                x_min, y_min, x_max, y_max = bbox
-                xc = max(0, min(1, ((x_min + x_max) / 2) / img_w))
-                yc = max(0, min(1, ((y_min + y_max) / 2) / img_h))
-                w = max(0, min(1, (x_max - x_min) / img_w))
-                h = max(0, min(1, (y_max - y_min) / img_h))
-                lines.append(f"0 {xc:.6f} {yc:.6f} {w:.6f} {h:.6f}")
+            # === Seg: YOLO 라벨 (이미지가 저장된 경우만) ===
+            if img_saved:
+                lines = []
+                for ann in data.get("annotations", []):
+                    bbox = ann.get("bbox", [])
+                    if len(bbox) != 4:
+                        continue
+                    x_min, y_min, x_max, y_max = bbox
+                    xc = max(0, min(1, ((x_min + x_max) / 2) / img_w))
+                    yc = max(0, min(1, ((y_min + y_max) / 2) / img_h))
+                    w = max(0, min(1, (x_max - x_min) / img_w))
+                    h = max(0, min(1, (y_max - y_min) / img_h))
+                    lines.append(f"0 {xc:.6f} {yc:.6f} {w:.6f} {h:.6f}")
 
-            if lines:
-                with open(seg_lbl_dir / (image_name + ".txt"), "w") as f:
-                    f.write("\n".join(lines))
-                seg_count += 1
+                if lines:
+                    with open(seg_lbl_dir / (image_name + ".txt"), "w") as f:
+                        f.write("\n".join(lines))
+                    seg_count += 1
 
             # === Cls: 모든 물고기 크롭 저장 (annotation별) ===
             for ann_idx, ann in enumerate(data.get("annotations", [])):
