@@ -266,8 +266,6 @@ def process_split(split, label_dir, image_zip):
 
             # === Seg: YOLO 라벨 (bbox → 정규화) ===
             lines = []
-            best_bbox = None
-            best_severity = -1
             for ann in data.get("annotations", []):
                 bbox = ann.get("bbox", [])
                 if len(bbox) != 4:
@@ -279,26 +277,33 @@ def process_split(split, label_dir, image_zip):
                 h = max(0, min(1, (y_max - y_min) / img_h))
                 lines.append(f"0 {xc:.6f} {yc:.6f} {w:.6f} {h:.6f}")
 
-                # cls용 최적 bbox 선택 (가장 큰 bbox)
-                area = (x_max - x_min) * (y_max - y_min)
-                if area > best_severity:
-                    best_severity = area
-                    best_bbox = bbox
-
             if lines:
                 with open(seg_lbl_dir / (image_name + ".txt"), "w") as f:
                     f.write("\n".join(lines))
                 seg_count += 1
 
-            # === Cls: 물고기 크롭 저장 ===
-            if best_bbox:
-                cls_img_path = CLS_DIR / split / cls_name / (image_name + ".JPG")
+            # === Cls: 모든 물고기 크롭 저장 (annotation별) ===
+            for ann_idx, ann in enumerate(data.get("annotations", [])):
+                bbox = ann.get("bbox", [])
+                if len(bbox) != 4:
+                    continue
+                # 개별 annotation의 증상으로 클래스 결정
+                s = ann.get("symptom")
+                ann_cls = SYMPTOM_CODE_MAP.get(s) if s else None
+                if ann_cls is None or ann_cls == "null":
+                    if ann.get("symptom_type") is None:
+                        ann_cls = "normal"
+                    else:
+                        continue
+
+                cls_img_path = CLS_DIR / split / ann_cls / (f"{image_name}_fish{ann_idx}.JPG")
                 if not cls_img_path.exists():
-                    cropped = crop_fish(img_bytes, best_bbox, img_w, img_h)
+                    cropped = crop_fish(img_bytes, bbox, img_w, img_h)
                     if cropped:
                         with open(cls_img_path, "wb") as f:
                             f.write(cropped)
-                        cls_counts[cls_name] += 1
+                        if ann_cls in cls_counts:
+                            cls_counts[ann_cls] += 1
 
             if (idx + 1) % 500 == 0:
                 print(f"    {idx+1}/{len(all_items)} 처리...")

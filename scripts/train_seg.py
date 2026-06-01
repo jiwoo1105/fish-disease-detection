@@ -1,7 +1,7 @@
 """
-Stage 1: 물고기 Segmentation 학습
-- YOLO26 사용, 목표 mAP50 >= 0.85까지 자동 반복
-- 실행: venv/bin/python scripts/train_seg.py
+Stage 1: 물고기 Detection 학습
+- YOLO26-Det 사용 (bbox 라벨이므로 Seg이 아닌 Det 사용)
+- 목표 mAP50 >= 0.85까지 자동 반복
 """
 
 import os
@@ -19,8 +19,8 @@ MODEL_SAVE_DIR = str(PROJECT_ROOT / "models/seg")
 DEVICE = "cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu"
 
 ROUND_CONFIGS = [
-    {"model": "yolo26n-seg.pt", "epochs": 100, "imgsz": 640, "batch": 64, "lr0": 0.01, "patience": 20},
-    {"model": "yolo26s-seg.pt", "epochs": 150, "imgsz": 640, "batch": 32, "lr0": 0.005, "patience": 30},
+    {"model": "yolo26n.pt", "epochs": 100, "imgsz": 640, "batch": 64, "lr0": 0.01, "patience": 20},
+    {"model": "yolo26s.pt", "epochs": 150, "imgsz": 640, "batch": 32, "lr0": 0.005, "patience": 30},
     {"model": None, "epochs": 100, "imgsz": 640, "batch": 32, "lr0": 0.001, "patience": 30},
     {"model": None, "epochs": 100, "imgsz": 800, "batch": 16, "lr0": 0.0005, "patience": 30},
     {"model": None, "epochs": 150, "imgsz": 800, "batch": 16, "lr0": 0.0001, "patience": 50},
@@ -40,7 +40,7 @@ def train():
 
         model_path = cfg["model"] if cfg["model"] else best_model_path
         if model_path is None:
-            model_path = "yolo26n-seg.pt"
+            model_path = "yolo26n.pt"
 
         model = YOLO(model_path)
         model.train(
@@ -51,7 +51,7 @@ def train():
         )
 
         metrics = model.val()
-        current = metrics.seg.map50 if hasattr(metrics, 'seg') else metrics.box.map50
+        current = metrics.box.map50
         print(f"\n  Round {r+1} mAP50 = {current:.4f}")
 
         if current > best_map50:
