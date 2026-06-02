@@ -22,7 +22,7 @@ DEVICE = "cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is
 ROUND_CONFIGS = [
     {"model": "yolo26n.pt", "epochs": 100, "imgsz": 640,  "batch": 32, "lr0": 0.01,  "patience": 20},
     {"model": "yolo26s.pt", "epochs": 150, "imgsz": 640,  "batch": 16, "lr0": 0.005, "patience": 30},
-    {"model": None,          "epochs": 100, "imgsz": 1280, "batch": 2,  "lr0": 0.001, "patience": 30, "workers": 4},
+    {"model": None,          "epochs": 100, "imgsz": 1280, "batch": 2,  "lr0": 0.001, "patience": 30, "workers": 0},
 ]
 
 
