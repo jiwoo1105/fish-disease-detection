@@ -14,7 +14,7 @@ from ultralytics import YOLO
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 DATA_YAML     = PROJECT_ROOT / "data/processed/lesion_det/data.yaml"
 MODEL_SAVE_DIR = PROJECT_ROOT / "models/lesion_det"
-TARGET_MAP50  = 0.50   # 병변 탐지는 난이도 높아 목표를 낮게 설정
+TARGET_MAP50  = 0.70
 MAX_ROUNDS    = 3
 
 DEVICE = "cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu"
