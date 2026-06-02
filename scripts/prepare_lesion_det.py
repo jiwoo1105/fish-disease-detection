@@ -105,7 +105,7 @@ def parse_annotations(json_path: Path, img_entries: dict):
 
     labels = []
     for ann in data.get("annotations", []):
-        s_type = ann.get("symptom_type") or ann.get("symptom")
+        s_type = ann.get("symptom")
         if s_type not in SYMPTOM_MAP:
             continue
         bbox = ann.get("bbox")
