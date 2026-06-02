@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>넙치 질병 탐지 시스템</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f172a; color: #e2e8f0; min-height: 100vh; }
+
+.header { background: linear-gradient(135deg, #1e293b, #334155); padding: 24px 32px; border-bottom: 1px solid #475569; }
+.header h1 { font-size: 24px; font-weight: 700; color: #38bdf8; }
+.header p { font-size: 14px; color: #94a3b8; margin-top: 4px; }
+
+.container { max-width: 1200px; margin: 0 auto; padding: 24px; }
+
+.upload-area {
+  border: 2px dashed #475569; border-radius: 16px; padding: 48px;
+  text-align: center; cursor: pointer; transition: all 0.3s;
+  background: #1e293b; margin-bottom: 24px;
+}
+.upload-area:hover, .upload-area.dragover { border-color: #38bdf8; background: #1e3a5f; }
+.upload-area h3 { font-size: 18px; color: #cbd5e1; margin-bottom: 8px; }
+.upload-area p { font-size: 14px; color: #64748b; }
+
+.btn { background: #2563eb; color: white; border: none; padding: 10px 24px; border-radius: 8px; font-size: 14px; cursor: pointer; font-weight: 600; }
+.btn:hover { background: #1d4ed8; }
+.btn:disabled { background: #475569; cursor: not-allowed; }
+
+.results { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+@media (max-width: 800px) { .results { grid-template-columns: 1fr; } }
+
+.image-panel { background: #1e293b; border-radius: 12px; overflow: hidden; }
+.image-panel img { width: 100%; display: block; }
+
+.info-panel { background: #1e293b; border-radius: 12px; padding: 20px; }
+.info-panel h3 { font-size: 16px; color: #38bdf8; margin-bottom: 16px; border-bottom: 1px solid #334155; padding-bottom: 8px; }
+
+.tank-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; }
+.stat-card { background: #0f172a; border-radius: 8px; padding: 12px; text-align: center; }
+.stat-card .value { font-size: 28px; font-weight: 700; }
+.stat-card .label { font-size: 12px; color: #94a3b8; margin-top: 4px; }
+
+.fish-card {
+  background: #0f172a; border-radius: 8px; padding: 14px; margin-bottom: 10px;
+  border-left: 4px solid #22c55e;
+}
+.fish-card.watch { border-left-color: #eab308; }
+.fish-card.danger { border-left-color: #f97316; }
+.fish-card.immediate { border-left-color: #ef4444; }
+
+.fish-card .fish-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.fish-card .fish-name { font-weight: 600; font-size: 14px; }
+.fish-card .risk-badge {
+  padding: 2px 10px; border-radius: 12px; font-size: 12px; font-weight: 600;
+}
+.risk-normal { background: #166534; color: #4ade80; }
+.risk-watch { background: #713f12; color: #facc15; }
+.risk-danger { background: #7c2d12; color: #fb923c; }
+.risk-immediate { background: #7f1d1d; color: #f87171; }
+
+.fish-detail { font-size: 13px; color: #94a3b8; line-height: 1.8; }
+.fish-detail strong { color: #cbd5e1; }
+
+.alert-box {
+  background: linear-gradient(135deg, #7f1d1d, #991b1b); border-radius: 8px;
+  padding: 14px; margin-bottom: 10px;
+}
+.alert-box .alert-title { font-weight: 700; font-size: 14px; color: #fca5a5; margin-bottom: 6px; }
+.alert-box .alert-body { font-size: 13px; color: #fecaca; line-height: 1.6; }
+
+.loading { text-align: center; padding: 40px; color: #94a3b8; }
+.spinner { display: inline-block; width: 32px; height: 32px; border: 3px solid #475569; border-top-color: #38bdf8; border-radius: 50%; animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.hidden { display: none; }
+
+.multi-images { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+.multi-images .thumb { width: 80px; height: 80px; object-fit: cover; border-radius: 8px; cursor: pointer; border: 2px solid transparent; opacity: 0.6; }
+.multi-images .thumb.active { border-color: #38bdf8; opacity: 1; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>넙치 질병 탐지 시스템</h1>
+  <p>YOLO 기반 양식장 넙치 질병 탐지 | Seg mAP50: 0.44 | Cls Acc: 87.7%</p>
+</div>
+
+<div class="container">
+  <div class="upload-area" id="uploadArea">
+    <h3>이미지를 드래그하거나 클릭하여 업로드</h3>
+    <p>여러 장 동시 업로드 가능 (JPG, PNG)</p>
+    <input type="file" id="fileInput" accept="image/*" multiple hidden>
+    <div class="multi-images" id="thumbs"></div>
+  </div>
+
+  <div style="text-align:center; margin-bottom: 24px;">
+    <button class="btn" id="analyzeBtn" disabled>분석 시작</button>
+    <span id="statusText" style="margin-left: 12px; font-size: 14px; color: #94a3b8;"></span>
+  </div>
+
+  <div class="loading hidden" id="loading">
+    <div class="spinner"></div>
+    <p style="margin-top: 12px;">분석 중...</p>
+  </div>
+
+  <div class="results hidden" id="results">
+    <div class="image-panel">
+      <img id="resultImage" src="" alt="결과 이미지">
+      <div class="multi-images" id="resultThumbs" style="padding: 12px;"></div>
+    </div>
+    <div class="info-panel">
+      <h3>분석 결과</h3>
+      <div class="tank-summary" id="tankSummary"></div>
+      <div id="fishCards"></div>
+      <div id="alertCards"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const uploadArea = document.getElementById('uploadArea');
+const fileInput = document.getElementById('fileInput');
+const analyzeBtn = document.getElementById('analyzeBtn');
+const statusText = document.getElementById('statusText');
+const loading = document.getElementById('loading');
+const results = document.getElementById('results');
+const thumbs = document.getElementById('thumbs');
+
+let selectedFiles = [];
+let allResults = [];
+
+uploadArea.addEventListener('click', () => fileInput.click());
+uploadArea.addEventListener('dragover', e => { e.preventDefault(); uploadArea.classList.add('dragover'); });
+uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('dragover'));
+uploadArea.addEventListener('drop', e => {
+  e.preventDefault(); uploadArea.classList.remove('dragover');
+  handleFiles(e.dataTransfer.files);
+});
+fileInput.addEventListener('change', e => handleFiles(e.target.files));
+
+function handleFiles(files) {
+  selectedFiles = Array.from(files);
+  thumbs.innerHTML = '';
+  selectedFiles.forEach((f, i) => {
+    const img = document.createElement('img');
+    img.className = 'thumb' + (i === 0 ? ' active' : '');
+    img.src = URL.createObjectURL(f);
+    img.onclick = () => selectThumb(i);
+    thumbs.appendChild(img);
+  });
+  analyzeBtn.disabled = false;
+  statusText.textContent = selectedFiles.length + '장 선택됨';
+}
+
+function selectThumb(idx) {
+  document.querySelectorAll('#thumbs .thumb').forEach((t, i) => t.classList.toggle('active', i === idx));
+}
+
+analyzeBtn.addEventListener('click', async () => {
+  if (!selectedFiles.length) return;
+  loading.classList.remove('hidden');
+  results.classList.add('hidden');
+  analyzeBtn.disabled = true;
+  allResults = [];
+
+  for (let i = 0; i < selectedFiles.length; i++) {
+    statusText.textContent = (i+1) + '/' + selectedFiles.length + ' 분석 중...';
+    const form = new FormData();
+    form.append('file', selectedFiles[i]);
+    try {
+      const res = await fetch('/api/analyze', { method: 'POST', body: form });
+      const data = await res.json();
+      data._localUrl = URL.createObjectURL(selectedFiles[i]);
+      data._filename = selectedFiles[i].name;
+      allResults.push(data);
+    } catch (e) {
+      allResults.push({ error: e.message, _localUrl: URL.createObjectURL(selectedFiles[i]), _filename: selectedFiles[i].name });
+    }
+  }
+
+  loading.classList.add('hidden');
+  results.classList.remove('hidden');
+  analyzeBtn.disabled = false;
+  statusText.textContent = '분석 완료';
+  showResult(0);
+  renderResultThumbs();
+});
+
+function renderResultThumbs() {
+  const rt = document.getElementById('resultThumbs');
+  rt.innerHTML = '';
+  allResults.forEach((r, i) => {
+    const img = document.createElement('img');
+    img.className = 'thumb' + (i === 0 ? ' active' : '');
+    img.src = r._localUrl;
+    img.onclick = () => {
+      document.querySelectorAll('#resultThumbs .thumb').forEach((t, j) => t.classList.toggle('active', j === i));
+      showResult(i);
+    };
+    rt.appendChild(img);
+  });
+}
+
+const riskKo = { normal: '정상', watch: '관찰', danger: '위험', immediate: '즉시 조치' };
+const symptomKo = { normal: '정상', hemorrhage: '출혈', white_spot: '백점', tumor: '종양/결절', color_change: '체색변화', emaciation: '여윔', ulcer: '궤양' };
+
+function showResult(idx) {
+  const r = allResults[idx];
+  // bbox가 그려진 결과 이미지 사용 (없으면 원본)
+  document.getElementById('resultImage').src = r.result_image
+    ? 'data:image/jpeg;base64,' + r.result_image
+    : r._localUrl;
+
+  const riskColor = { normal: '#4ade80', watch: '#facc15', danger: '#fb923c', immediate: '#f87171' };
+  const rc = riskColor[r.tank_risk_level] || '#94a3b8';
+
+  document.getElementById('tankSummary').innerHTML = `
+    <div class="stat-card"><div class="value" style="color:${rc}">${r.fish_count || 0}</div><div class="label">탐지 물고기</div></div>
+    <div class="stat-card"><div class="value" style="color:${rc}">${r.diseased_count || 0}</div><div class="label">질병 의심</div></div>
+    <div class="stat-card"><div class="value" style="color:${rc}">${riskKo[r.tank_risk_level] || r.tank_risk_level || '-'}</div><div class="label">수조 위험도</div></div>
+  `;
+
+  const fc = document.getElementById('fishCards');
+  fc.innerHTML = '';
+  (r.fish || []).forEach(f => {
+    const level = f.risk_level || 'normal';
+    fc.innerHTML += `
+    <div class="fish-card ${level}">
+      <div class="fish-header">
+        <span class="fish-name">물고기 #${f.fish_id}</span>
+        <span class="risk-badge risk-${level}">${riskKo[level] || level}</span>
+      </div>
+      <div class="fish-detail">
+        <strong>증상:</strong> ${symptomKo[f.symptom] || f.symptom} (${(f.symptom_confidence*100).toFixed(1)}%)<br>
+        <strong>의심 질병:</strong> ${f.likely_disease || '없음'}<br>
+        <strong>전염성:</strong> ${f.contagious ? '있음' : '없음'}<br>
+        ${f.response ? `<strong>대응:</strong> ${f.response.action || ''} / ${f.response.temperature || ''}` : ''}
+      </div>
+    </div>`;
+  });
+
+  const ac = document.getElementById('alertCards');
+  ac.innerHTML = '';
+  (r.alerts || []).forEach(a => {
+    ac.innerHTML += `
+    <div class="alert-box">
+      <div class="alert-title">${a.severity === 'immediate' ? '긴급' : '경고'} - ${a.disease}</div>
+      <div class="alert-body">
+        ${a.action || ''}<br>
+        ${a.temperature || ''}<br>
+        격리 필요: ${a.isolate ? '예' : '아니오'}
+      </div>
+    </div>`;
+  });
+
+  if (!r.fish || r.fish.length === 0) {
+    fc.innerHTML = '<div style="text-align:center; color:#64748b; padding:20px;">탐지된 물고기가 없습니다</div>';
+  }
+}
+</script>
+</body>
+</html>

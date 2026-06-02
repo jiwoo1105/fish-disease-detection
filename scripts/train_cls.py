@@ -38,14 +38,13 @@ def train():
         print(f"  Round {r+1}/{MAX_ROUNDS} | best Acc: {best_acc:.4f} / target: {TARGET_ACCURACY}")
         print(f"{'='*60}\n")
 
-        model_path = cfg["model"] if cfg["model"] else best_model_path
-        if model_path is None:
-            model_path = "yolo26n-cls.pt"
+        model_path = cfg["model"] if cfg["model"] else (best_model_path or "yolo26n-cls.pt")
 
         model = YOLO(model_path)
         model.train(
             data=DATA_DIR, epochs=cfg["epochs"], imgsz=cfg["imgsz"],
             batch=cfg["batch"], lr0=cfg["lr0"], patience=cfg["patience"],
+            augment=True,
             device=DEVICE,
             project=MODEL_SAVE_DIR, name=f"round_{r+1}", exist_ok=True,
         )

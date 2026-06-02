@@ -56,13 +56,13 @@ symptom_disease_map:
       contagious: true
   color_change:
     - name: 스쿠티카병
-      probability: 0.3
+      probability: 0.4
       contagious: true
     - name: 비브리오병
-      probability: 0.3
+      probability: 0.35
       contagious: true
     - name: 기타
-      probability: 0.4
+      probability: 0.25
       contagious: false
   tumor:
     - name: 림포시스티스병
@@ -124,21 +124,83 @@ disease_response:
     detail: "약욕 처리. 수질 관리 강화."
     urgency: danger
     isolate: true
+  기타:
+    action: MONITOR
+    temperature: "유지"
+    detail: "정확한 원인 파악 필요. 수질/사료/환경 점검 후 지속 관찰."
+    urgency: watch
+    isolate: false
+  에드워드병:
+    action: ISOLATE_AND_TREAT
+    temperature: "유지"
+    detail: "내장 출혈, 패혈증 유발. 감염 어체 즉시 격리, 항생제 투여 검토."
+    urgency: danger
+    isolate: true
 
 # 위험도 점수 (증상별 심각도)
 symptom_severity:
   normal: 0
-  color_change: 1
+  color_change: 2
   emaciation: 2
-  tumor: 2
-  hemorrhage: 3
-  white_spot: 3
-  ulcer: 4
+  tumor: 3
+  hemorrhage: 4
+  white_spot: 4
+  ulcer: 5
+
+# 질병 + 수온 조합 규칙 (질병 감지 시 온도에 따라 추가 경보)
+disease_temperature_rules:
+  스쿠티카병:
+    condition: ">="
+    threshold: 20
+    alert: "수온이 높아 스쿠티카병 증식 가속. 즉시 18도 이하로 낮추세요."
+    urgency: immediate
+  VHS(바이러스성출혈성패혈증):
+    condition: "<="
+    threshold: 15
+    alert: "저수온 환경에서 VHS 확산 위험. 20도 이상으로 올리세요."
+    urgency: immediate
+  비브리오병:
+    condition: ">="
+    threshold: 25
+    alert: "고수온 환경에서 비브리오균 증식 가속. 수온 낮추고 항생제 투여 검토."
+    urgency: danger
+  에드워드병:
+    condition: ">="
+    threshold: 25
+    alert: "고수온에서 에드워드균 증식 위험. 수온 관리 강화."
+    urgency: danger
+
+# 수질 정상 범위 (넙치 기준)
+water_quality_thresholds:
+  temperature:
+    min: 16
+    max: 22
+    unit: "°C"
+    low_alert: "저수온 주의 - VHS·에드워드병 발병 위험"
+    high_alert: "고수온 주의 - 스쿠티카병·비브리오병 위험"
+  do:
+    min: 7.0
+    max: 12.0
+    unit: "mg/L"
+    low_alert: "용존산소 부족 - 폐사 위험, 즉시 환기 필요"
+    high_alert: "용존산소 과포화 - 기포병 주의"
+  ph:
+    min: 7.0
+    max: 8.5
+    unit: ""
+    low_alert: "pH 낮음 - 산성화로 면역력 저하"
+    high_alert: "pH 높음 - 아가미 손상 가능"
+  salinity:
+    min: 28
+    max: 35
+    unit: "ppt"
+    low_alert: "염도 낮음 - 삼투압 스트레스"
+    high_alert: "염도 높음 - 탈수 스트레스"
 
 # 위험도 등급 기준
 risk_thresholds:
   watch: 1.5       # score >= 1.5
   danger: 3.0      # score >= 3.0
-  immediate: 3.5   # score >= 3.5
+  immediate: 4.0   # score >= 4.0
   tank_disease_ratio_danger: 0.15
   tank_disease_ratio_immediate: 0.30

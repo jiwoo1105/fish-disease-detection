@@ -13,6 +13,8 @@ with open(CONFIG_PATH) as f:
 
 SEVERITY = CONFIG["symptom_severity"]
 THRESHOLDS = CONFIG["risk_thresholds"]
+DISEASE_TEMP_RULES = CONFIG.get("disease_temperature_rules", {})
+WQ_THRESHOLDS = CONFIG.get("water_quality_thresholds", {})
 
 
 def score_fish(symptom: str, confidence: float) -> dict:
@@ -75,3 +77,48 @@ def score_tank(fish_results: list) -> dict:
         "symptom_summary": symptom_counts,
         "has_contagious": has_contagious,
     }
+
+
+def score_sensors(sensors: dict) -> dict:
+    """수질 센서 데이터 이상 감지"""
+    alerts = []
+    for key, value in sensors.items():
+        if key not in WQ_THRESHOLDS or value is None:
+            continue
+        rule = WQ_THRESHOLDS[key]
+        if value < rule["min"]:
+            alerts.append({
+                "type": key,
+                "value": value,
+                "unit": rule["unit"],
+                "level": "immediate" if key == "do" else "danger",
+                "message": rule["low_alert"],
+            })
+        elif value > rule["max"]:
+            alerts.append({
+                "type": key,
+                "value": value,
+                "unit": rule["unit"],
+                "level": "watch",
+                "message": rule["high_alert"],
+            })
+    return {
+        "sensor_alerts": alerts,
+        "sensor_ok": len(alerts) == 0,
+    }
+
+
+def score_disease_temperature(disease_name: str, temperature: float) -> dict:
+    """질병 감지 + 수온 조합 규칙 체크"""
+    if not disease_name or temperature is None or disease_name not in DISEASE_TEMP_RULES:
+        return {}
+    rule = DISEASE_TEMP_RULES[disease_name]
+    cond = rule["condition"]
+    thr = rule["threshold"]
+    triggered = (cond == ">=" and temperature >= thr) or (cond == "<=" and temperature <= thr)
+    if triggered:
+        return {
+            "temperature_alert": rule["alert"],
+            "temperature_urgency": rule["urgency"],
+        }
+    return {}

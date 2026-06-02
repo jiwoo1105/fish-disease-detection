@@ -29,18 +29,28 @@ from disease_mapper import map_symptom_to_disease
 from risk_scorer import score_fish, score_tank
 
 # 모델 경로 (프로젝트 루트 기준 절대 경로)
+# Det 모델 우선, 없으면 기존 Seg 모델 fallback
+DET_MODEL = str(PROJECT_ROOT / "models/det/best_det.pt")
 SEG_MODEL = str(PROJECT_ROOT / "models/seg/best_seg.pt")
 CLS_MODEL = str(PROJECT_ROOT / "models/cls/best_cls.pt")
 CLS_IMGSZ = 224
 
 
-def load_models(seg_path=SEG_MODEL, cls_path=CLS_MODEL):
-    """모델 로드"""
-    print(f"Loading seg model: {seg_path}")
-    seg = YOLO(seg_path)
+def load_models(det_path=None, cls_path=CLS_MODEL):
+    """모델 로드 - Det 모델 우선, 없으면 Seg fallback"""
+    if det_path is None:
+        if Path(DET_MODEL).exists():
+            det_path = DET_MODEL
+        elif Path(SEG_MODEL).exists():
+            det_path = SEG_MODEL
+            print(f"  [WARN] Det 모델 없음, Seg 모델로 fallback: {det_path}")
+        else:
+            raise FileNotFoundError(f"탐지 모델 없음: {DET_MODEL} / {SEG_MODEL}")
+    print(f"Loading det model: {det_path}")
+    det = YOLO(det_path)
     print(f"Loading cls model: {cls_path}")
     cls = YOLO(cls_path)
-    return seg, cls
+    return det, cls
 
 
 def crop_fish(image, bbox):
@@ -100,10 +110,10 @@ def analyze_image(image, seg_model, cls_model):
     # 수조 집계
     tank_info = score_tank(fish_results)
 
-    # 알림 생성
+    # 알림 생성 (watch 이상이면 알림)
     alerts = []
     for f in fish_results:
-        if f["risk_level"] in ("danger", "immediate") and f.get("response"):
+        if f["risk_level"] != "normal" and f.get("response"):
             alerts.append({
                 "fish_id": f["fish_id"],
                 "severity": f["risk_level"],
@@ -196,13 +206,13 @@ def main():
     parser = argparse.ArgumentParser(description="넙치 질병 탐지 추론")
     parser.add_argument("--image", type=str, help="이미지 경로")
     parser.add_argument("--video", type=str, help="영상 경로")
-    parser.add_argument("--seg-model", type=str, default=SEG_MODEL)
+    parser.add_argument("--det-model", type=str, default=None, help="탐지 모델 경로 (기본: 자동 선택)")
     parser.add_argument("--cls-model", type=str, default=CLS_MODEL)
     parser.add_argument("--frame-interval", type=int, default=30)
     parser.add_argument("--save", action="store_true", help="결과 이미지/영상 저장")
     args = parser.parse_args()
 
-    seg_model, cls_model = load_models(args.seg_model, args.cls_model)
+    seg_model, cls_model = load_models(args.det_model, args.cls_model)
 
     if args.image:
         image = cv2.imread(args.image)
