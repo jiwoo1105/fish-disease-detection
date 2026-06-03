@@ -37,16 +37,17 @@ app.add_middleware(
 )
 
 # 모델 로드 (서버 시작 시 1회)
-seg_model, cls_model = None, None
+seg_model, cls_model, lesion_model = None, None, None
 
 @app.on_event("startup")
 async def startup():
-    global seg_model, cls_model
+    global seg_model, cls_model, lesion_model
     from pathlib import Path
     project_root = Path(__file__).resolve().parent.parent
     det_path = str(project_root / "models/det/best_det.pt")
     seg_path = str(project_root / "models/seg/best_seg.pt")
     cls_path = str(project_root / "models/cls/best_cls.pt")
+    lesion_path = str(project_root / "models/lesion_det/best_lesion_det.pt")
 
     det_exists = Path(det_path).exists()
     seg_exists = Path(seg_path).exists()
@@ -59,7 +60,7 @@ async def startup():
         return
 
     active_det = det_path if det_exists else seg_path
-    seg_model, cls_model = load_models(active_det, cls_path)
+    seg_model, cls_model, lesion_model = load_models(active_det, cls_path, lesion_path)
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -88,7 +89,7 @@ async def analyze(
     """이미지 업로드 → 질병 분석 결과 반환
     선택적 수질 센서 데이터: temperature, do, ph, salinity
     """
-    if seg_model is None or cls_model is None:
+    if seg_model is None or cls_model is None:  # lesion_model is optional
         raise HTTPException(503, "모델이 로드되지 않았습니다. 서버를 재시작하세요.")
 
     if not file.content_type.startswith("image/"):
@@ -102,7 +103,7 @@ async def analyze(
         raise HTTPException(400, "이미지를 읽을 수 없습니다")
 
     start = time.time()
-    result = analyze_image(image, seg_model, cls_model)
+    result = analyze_image(image, seg_model, cls_model, lesion_model)
     elapsed = time.time() - start
 
     # 수질 센서 분석
