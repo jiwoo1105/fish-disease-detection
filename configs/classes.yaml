@@ -27,13 +27,13 @@ symptom_code_map:
 
 # 클래스별 데이터 밸런싱 목표
 balance_targets:
-  normal: 5000
-  hemorrhage: 5000
-  white_spot: 5000
-  tumor: 2400         # 전체 사용
-  color_change: 5000
-  emaciation: 2000    # 증강 포함
-  ulcer: 2000         # 증강 포함
+  normal: 2000
+  hemorrhage: 2000
+  white_spot: 2000
+  tumor: 1518         # 전체 사용
+  color_change: 2000
+  emaciation: 134     # 전체 사용
+  ulcer: 274          # 전체 사용
 
 # 증상 → 질병 매핑
 symptom_disease_map:

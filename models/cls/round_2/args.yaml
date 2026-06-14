@@ -1,18 +1,18 @@
 task: classify
 mode: train
 model: yolo26s-cls.pt
-data: /workspace/fish-disease-detection/data/processed/classification
+data: /Users/ziuuu/Documents/embedded_system/data/processed/classification
 epochs: 80
 time: null
 patience: 20
-batch: 128
+batch: 32
 imgsz: 224
 save: true
 save_period: -1
 cache: false
-device: '0'
+device: mps
 workers: 8
-project: /workspace/fish-disease-detection/models/cls
+project: /Users/ziuuu/Documents/embedded_system/models/cls
 name: round_2
 exist_ok: true
 pretrained: true
@@ -48,7 +48,7 @@ source: null
 vid_stride: 1
 stream_buffer: false
 visualize: false
-augment: false
+augment: true
 agnostic_nms: false
 classes: null
 retina_masks: false
@@ -107,4 +107,4 @@ auto_augment: randaugment
 erasing: 0.4
 cfg: null
 tracker: botsort.yaml
-save_dir: /workspace/fish-disease-detection/models/cls/round_2
+save_dir: /Users/ziuuu/Documents/embedded_system/models/cls/round_2

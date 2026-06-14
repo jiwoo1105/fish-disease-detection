@@ -1,0 +1,49 @@
+{
+  "fish_count": 2,
+  "diseased_count": 0,
+  "disease_ratio": 0.0,
+  "tank_risk_level": "normal",
+  "symptom_summary": {
+    "color_change": 2
+  },
+  "has_contagious": false,
+  "fish": [
+    {
+      "fish_id": 1,
+      "bbox": [
+        4255.3,
+        2450.8,
+        4620.9,
+        2919.0
+      ],
+      "seg_confidence": 0.779,
+      "symptom": "color_change",
+      "symptom_confidence": 1.0,
+      "likely_disease": "기타",
+      "disease_confidence": 0.4,
+      "contagious": false,
+      "response": null,
+      "risk_score": 1.0,
+      "risk_level": "normal"
+    },
+    {
+      "fish_id": 2,
+      "bbox": [
+        2942.6,
+        2277.1,
+        3539.8,
+        2433.4
+      ],
+      "seg_confidence": 0.258,
+      "symptom": "color_change",
+      "symptom_confidence": 0.999,
+      "likely_disease": "기타",
+      "disease_confidence": 0.4,
+      "contagious": false,
+      "response": null,
+      "risk_score": 0.999,
+      "risk_level": "normal"
+    }
+  ],
+  "alerts": []
+}

@@ -245,8 +245,6 @@ def draw_results(image, result):
         symptom = fish["symptom"]
         conf = fish["symptom_confidence"]
         label = f"#{fish['fish_id']} {symptom} {conf:.0%}"
-        if fish.get("likely_disease"):
-            label += f" | {fish['likely_disease']}"
         cv2.putText(vis, label, (x1, max(y1 - 10, 15)),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.55, color, 2)
 

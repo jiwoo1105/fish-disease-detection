@@ -1,0 +1,56 @@
+{
+  "fish_count": 2,
+  "diseased_count": 1,
+  "disease_ratio": 0.5,
+  "tank_risk_level": "immediate",
+  "symptom_summary": {
+    "color_change": 1,
+    "tumor": 1
+  },
+  "has_contagious": false,
+  "fish": [
+    {
+      "fish_id": 1,
+      "bbox": [
+        2047.3,
+        1975.8,
+        2423.7,
+        2599.7
+      ],
+      "seg_confidence": 0.844,
+      "symptom": "color_change",
+      "symptom_confidence": 0.99,
+      "likely_disease": "기타",
+      "disease_confidence": 0.396,
+      "contagious": false,
+      "response": null,
+      "risk_score": 0.99,
+      "risk_level": "normal"
+    },
+    {
+      "fish_id": 2,
+      "bbox": [
+        3524.6,
+        986.3,
+        3690.1,
+        1186.2
+      ],
+      "seg_confidence": 0.265,
+      "symptom": "tumor",
+      "symptom_confidence": 0.999,
+      "likely_disease": "림포시스티스병",
+      "disease_confidence": 0.899,
+      "contagious": false,
+      "response": {
+        "action": "MONITOR",
+        "temperature": "유지",
+        "detail": "자연 치유 가능. 스트레스 줄이고 수질 관리에 집중.",
+        "urgency": "watch",
+        "isolate": false
+      },
+      "risk_score": 1.998,
+      "risk_level": "watch"
+    }
+  ],
+  "alerts": []
+}

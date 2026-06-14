@@ -15,6 +15,7 @@ import json
 import os
 import random
 import zipfile
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
 import cv2
@@ -106,20 +107,42 @@ def get_dominant_symptom(data):
     return best_class
 
 
+def _read_json(path):
+    """단일 JSON 파일 읽기 (스레드용)"""
+    try:
+        with open(path) as f:
+            return json.load(f)
+    except Exception:
+        return None
+
+
 def classify_labels(label_dir, img_entries):
-    """라벨 파일을 클래스별로 분류 (zip에 이미지 있는 것만)"""
+    """라벨 파일을 클래스별로 분류 (zip에 이미지 있는 것만, 멀티스레드)"""
     class_data = {cls: [] for cls in BALANCE_TARGETS}
     skipped = 0
 
     files = [f for f in os.listdir(label_dir) if f.endswith('.json')]
     print(f"  라벨 파일: {len(files)}개")
+    print(f"  멀티스레드로 JSON 읽는 중 (32 workers)...")
 
-    for i, fname in enumerate(files):
-        if (i + 1) % 10000 == 0:
-            print(f"    {i+1}/{len(files)}...")
+    paths = [os.path.join(label_dir, f) for f in files]
+    results = [None] * len(paths)
 
-        with open(os.path.join(label_dir, fname)) as f:
-            data = json.load(f)
+    with ThreadPoolExecutor(max_workers=32) as executor:
+        futures = {executor.submit(_read_json, p): i for i, p in enumerate(paths)}
+        done_count = 0
+        for future in as_completed(futures):
+            idx = futures[future]
+            results[idx] = future.result()
+            done_count += 1
+            if done_count % 5000 == 0:
+                print(f"    {done_count}/{len(files)} 읽기 완료...")
+
+    print(f"  JSON 읽기 완료, 분류 중...")
+    for data in results:
+        if data is None:
+            skipped += 1
+            continue
 
         image_name = data["images"][0]["file_name"]
         if image_name not in img_entries:
@@ -222,25 +245,22 @@ def process_split(split, label_dir, image_zip):
     is_val = (split == "val")
     balanced = balance_classes(class_data, is_val=is_val)
 
-    # Step 4: 디렉토리 생성
-    seg_img_dir = SEG_DIR / split / "images"
-    seg_lbl_dir = SEG_DIR / split / "labels"
-    os.makedirs(seg_img_dir, exist_ok=True)
-    os.makedirs(seg_lbl_dir, exist_ok=True)
-
+    # Step 4: 디렉토리 생성 (Cls만 — Seg는 이미 학습 완료)
     for cls_name in BALANCE_TARGETS:
         os.makedirs(CLS_DIR / split / cls_name, exist_ok=True)
 
-    # Step 5: 이미지 추출 + 라벨 생성
+    # Step 5: 이미지 추출 (Cls 크롭만)
     all_items = []
     for cls_name, items in balanced.items():
         for img_name, data in items:
             all_items.append((img_name, data, cls_name))
 
-    print(f"\n  총 처리할 이미지: {len(all_items)}개")
-    print(f"  이미지 추출 + 라벨 생성 중...")
+    # 크롭 단계 클래스당 최대 개수 (train만 제한, val은 전체 사용)
+    MAX_CROPS_PER_CLASS = 2500 if not is_val else float('inf')
 
-    seg_count = 0
+    print(f"\n  총 처리할 이미지: {len(all_items)}개")
+    print(f"  Cls 크롭 이미지 추출 중 (Seg 스킵, 클래스당 max={MAX_CROPS_PER_CLASS})...")
+
     cls_counts = {cls: 0 for cls in BALANCE_TARGETS}
 
     with zipfile.ZipFile(image_zip) as iz:
@@ -256,42 +276,13 @@ def process_split(split, label_dir, image_zip):
             with iz.open(entry) as src:
                 img_bytes = src.read()
 
-            # === Seg: 리사이즈 이미지 저장 ===
-            seg_img_path = seg_img_dir / (image_name + ".JPG")
-            img_saved = False
-            if not seg_img_path.exists():
-                resized = resize_image_bytes(img_bytes, SEG_IMGSZ)
-                if resized:
-                    with open(seg_img_path, "wb") as f:
-                        f.write(resized)
-                    img_saved = True
-            else:
-                img_saved = True
-
-            # === Seg: YOLO 라벨 (이미지가 저장된 경우만) ===
-            if img_saved:
-                lines = []
-                for ann in data.get("annotations", []):
-                    bbox = ann.get("bbox", [])
-                    if len(bbox) != 4:
-                        continue
-                    x_min, y_min, x_max, y_max = bbox
-                    xc = max(0, min(1, ((x_min + x_max) / 2) / img_w))
-                    yc = max(0, min(1, ((y_min + y_max) / 2) / img_h))
-                    w = max(0, min(1, (x_max - x_min) / img_w))
-                    h = max(0, min(1, (y_max - y_min) / img_h))
-                    lines.append(f"0 {xc:.6f} {yc:.6f} {w:.6f} {h:.6f}")
-
-                if lines:
-                    with open(seg_lbl_dir / (image_name + ".txt"), "w") as f:
-                        f.write("\n".join(lines))
-                    seg_count += 1
-
-            # === Cls: 모든 물고기 크롭 저장 (annotation별) ===
+            # === Cls: 크롭 저장 ===
+            has_bbox = False
             for ann_idx, ann in enumerate(data.get("annotations", [])):
                 bbox = ann.get("bbox", [])
                 if len(bbox) != 4:
                     continue
+                has_bbox = True
                 # 개별 annotation의 증상으로 클래스 결정
                 s = ann.get("symptom")
                 ann_cls = SYMPTOM_CODE_MAP.get(s) if s else None
@@ -300,6 +291,10 @@ def process_split(split, label_dir, image_zip):
                         ann_cls = "normal"
                     else:
                         continue
+
+                # 클래스당 최대 개수 제한
+                if cls_counts.get(ann_cls, 0) >= MAX_CROPS_PER_CLASS:
+                    continue
 
                 cls_img_path = CLS_DIR / split / ann_cls / (f"{image_name}_fish{ann_idx}.JPG")
                 if not cls_img_path.exists():
@@ -310,11 +305,22 @@ def process_split(split, label_dir, image_zip):
                         if ann_cls in cls_counts:
                             cls_counts[ann_cls] += 1
 
+            # normal 이미지인데 bbox 없으면 → 전체 이미지 리사이즈로 저장
+            if not has_bbox and cls_name == "normal":
+                if cls_counts["normal"] >= MAX_CROPS_PER_CLASS:
+                    continue
+                cls_img_path = CLS_DIR / split / "normal" / (f"{image_name}.JPG")
+                if not cls_img_path.exists():
+                    resized = resize_image_bytes(img_bytes, CLS_IMGSZ)
+                    if resized:
+                        with open(cls_img_path, "wb") as f:
+                            f.write(resized)
+                        cls_counts["normal"] += 1
+
             if (idx + 1) % 500 == 0:
                 print(f"    {idx+1}/{len(all_items)} 처리...")
 
-    print(f"\n  [Seg] {seg_count} img+lbl")
-    print(f"  [Cls] 클래스별:")
+    print(f"\n  [Cls] 클래스별:")
     for cls, cnt in sorted(cls_counts.items(), key=lambda x: -x[1]):
         print(f"    {cls:15s}: {cnt}")
 

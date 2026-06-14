@@ -1,0 +1,31 @@
+{
+  "fish_count": 1,
+  "diseased_count": 0,
+  "disease_ratio": 0.0,
+  "tank_risk_level": "normal",
+  "symptom_summary": {
+    "color_change": 1
+  },
+  "has_contagious": false,
+  "fish": [
+    {
+      "fish_id": 1,
+      "bbox": [
+        1115.5,
+        137.5,
+        2285.6,
+        934.3
+      ],
+      "seg_confidence": 0.592,
+      "symptom": "color_change",
+      "symptom_confidence": 0.987,
+      "likely_disease": "기타",
+      "disease_confidence": 0.395,
+      "contagious": false,
+      "response": null,
+      "risk_score": 0.987,
+      "risk_level": "normal"
+    }
+  ],
+  "alerts": []
+}
