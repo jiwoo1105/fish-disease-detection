@@ -1,14 +1,15 @@
-import 'dart:typed_data';
+// 홈: 양식장 수조 6개를 CCTV 처럼 한눈에 보는 대시보드.
+// 각 수조는 현장에 설치된 카메라라고 가정한다. 수조를 누르면 그 수조 영상을 올려
+// 진단하고(VideoScreen), 종료 시 받은 요약을 해당 수조 카드에 표시·저장한다.
+// (수조는 6개 고정 — 추가/삭제 없음)
 
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
 
 import '../labels.dart';
-import '../models/results.dart';
-import '../services/annotate.dart';
-import '../services/pipeline_service.dart';
-import '../widgets/action_card.dart';
-import 'live_screen.dart';
+import '../models/tank.dart';
+import '../services/tank_store.dart';
+import 'photo_screen.dart';
+import 'video_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -18,233 +19,152 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final _pipeline = PipelineService();
-  final _picker = ImagePicker();
+  static const int _tankCount = 6;
 
-  bool _modelReady = false;
-  bool _busy = false;
-  String? _error;
-  Uint8List? _annotated;
-  TankResult? _result;
+  final _store = TankStore();
+  List<TankProfile> _tanks = List.generate(
+    _tankCount,
+    (i) => TankProfile(id: 'tank${i + 1}', name: '수조 ${i + 1}'),
+  );
+  bool _loading = true;
 
   @override
   void initState() {
     super.initState();
-    _initModel();
+    _load();
   }
 
-  Future<void> _initModel() async {
-    try {
-      await _pipeline.init();
-      if (mounted) setState(() => _modelReady = true);
-    } catch (e) {
-      if (mounted) setState(() => _error = '모델 로드 실패: $e');
-    }
-  }
-
-  @override
-  void dispose() {
-    _pipeline.dispose();
-    super.dispose();
-  }
-
-  Future<void> _run(ImageSource source) async {
-    if (!_modelReady || _busy) return;
-    final file = await _picker.pickImage(source: source, maxWidth: 1920);
-    if (file == null) return;
-
+  // 저장된 요약을 고정 수조 6개에 병합한다.
+  Future<void> _load() async {
+    final stored = await _store.load();
+    final byId = {for (final t in stored) t.id: t};
+    if (!mounted) return;
     setState(() {
-      _busy = true;
-      _error = null;
-      _result = null;
-      _annotated = null;
-    });
-
-    try {
-      final bytes = await file.readAsBytes();
-      final tank = await _pipeline.analyze(bytes);
-      final annotated = annotateImage(bytes, tank.fish);
-      if (!mounted) return;
-      setState(() {
-        _result = tank;
-        _annotated = annotated;
+      _tanks = List.generate(_tankCount, (i) {
+        final id = 'tank${i + 1}';
+        return TankProfile(
+          id: id,
+          name: '수조 ${i + 1}',
+          lastSummary: byId[id]?.lastSummary,
+        );
       });
-    } catch (e) {
-      if (mounted) setState(() => _error = '분석 실패: $e');
-    } finally {
-      if (mounted) setState(() => _busy = false);
-    }
+      _loading = false;
+    });
+  }
+
+  Future<void> _openTank(TankProfile tank) async {
+    final summary = await Navigator.of(context).push<TankSummary>(
+      MaterialPageRoute(builder: (_) => VideoScreen(tank: tank)),
+    );
+    if (summary == null || !mounted) return;
+    final i = _tanks.indexWhere((t) => t.id == tank.id);
+    if (i < 0) return;
+    setState(() => _tanks[i] = _tanks[i].copyWith(lastSummary: summary));
+    await _store.save(_tanks);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('넙치닥터'),
+        title: const Text('넙치닥터 · 수조 모니터링'),
         backgroundColor: const Color(0xFF0277BD),
         foregroundColor: Colors.white,
+        actions: [
+          IconButton(
+            tooltip: '사진 1장 분석',
+            icon: const Icon(Icons.photo_camera),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const PhotoScreen()),
+            ),
+          ),
+        ],
       ),
-      body: Column(
-        children: [
-          if (!_modelReady && _error == null) const LinearProgressIndicator(),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
-            child: SizedBox(
-              width: double.infinity,
-              child: FilledButton.icon(
-                style: FilledButton.styleFrom(
-                  backgroundColor: const Color(0xFFD32F2F),
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                ),
-                onPressed: () => Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const LiveScreen()),
-                ),
-                icon: const Icon(Icons.videocam),
-                label: const Text('실시간 모니터링 시작',
-                    style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
+      body: _loading
+          ? const Center(child: CircularProgressIndicator())
+          : GridView.count(
+              padding: const EdgeInsets.all(12),
+              crossAxisCount: 2,
+              crossAxisSpacing: 12,
+              mainAxisSpacing: 12,
+              childAspectRatio: 0.92,
+              children: _tanks.map(_tankCard).toList(),
+            ),
+    );
+  }
+
+  Widget _tankCard(TankProfile tank) {
+    final s = tank.lastSummary;
+    final color = s == null ? Colors.black45 : riskColor(s.riskLevel);
+    return InkWell(
+      onTap: () => _openTank(tank),
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.black87,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: color, width: 2),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // CCTV "화면" 영역
+            Expanded(
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  const ColoredBox(color: Color(0xFF101418)),
+                  Center(
+                    child: Icon(
+                      s == null
+                          ? Icons.videocam_off
+                          : (s.riskLevel == 'normal'
+                              ? Icons.videocam
+                              : Icons.warning_amber_rounded),
+                      color: color,
+                      size: 40,
+                    ),
+                  ),
+                  Positioned(
+                    top: 6,
+                    left: 8,
+                    child: Text(
+                      tank.name,
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15),
+                    ),
+                  ),
+                  const Positioned(
+                    top: 8,
+                    right: 8,
+                    child: Icon(Icons.upload, color: Colors.white54, size: 18),
+                  ),
+                ],
               ),
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: (_modelReady && !_busy)
-                        ? () => _run(ImageSource.camera)
-                        : null,
-                    icon: const Icon(Icons.camera_alt),
-                    label: const Text('사진 1장 분석'),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: (_modelReady && !_busy)
-                        ? () => _run(ImageSource.gallery)
-                        : null,
-                    icon: const Icon(Icons.photo_library),
-                    label: const Text('갤러리'),
-                  ),
-                ),
-              ],
+            // 상태 바
+            Container(
+              width: double.infinity,
+              color: color.withValues(alpha: 0.18),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              child: Text(
+                s == null
+                    ? '영상 업로드'
+                    : '${urgencyLabel(s.riskLevel)} · 최대 ${s.maxFish}마리'
+                        '${s.diseasedCount > 0 ? ' · 이상 ${s.diseasedCount}' : ''}',
+                style: TextStyle(
+                    color: s == null ? Colors.white70 : color,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
-          ),
-          if (!_modelReady && _error == null)
-            const Padding(
-              padding: EdgeInsets.all(8),
-              child: Text('모델 로딩 중...'),
-            ),
-          if (_busy) const LinearProgressIndicator(minHeight: 2),
-          Expanded(child: _buildBody()),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildBody() {
-    if (_error != null) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Text(_error!, style: const TextStyle(color: Colors.red)),
+          ],
         ),
-      );
-    }
-    final result = _result;
-    if (result == null) {
-      return const Center(
-        child: Padding(
-          padding: EdgeInsets.all(24),
-          child: Text(
-            '넙치 사진을 촬영하거나 갤러리에서 선택하세요.\n질병이 감지되면 대응 행동을 알려드립니다.',
-            textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.black54),
-          ),
-        ),
-      );
-    }
-
-    final alerts = result.alerts;
-    return ListView(
-      children: [
-        _tankBanner(result),
-        if (_annotated != null)
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: Image.memory(_annotated!, fit: BoxFit.contain),
-            ),
-          ),
-        if (result.fishCount == 0)
-          const Padding(
-            padding: EdgeInsets.all(20),
-            child: Text('넙치를 찾지 못했습니다. 더 가까이서 다시 촬영해 보세요.',
-                textAlign: TextAlign.center),
-          )
-        else if (alerts.isEmpty)
-          const Padding(
-            padding: EdgeInsets.all(20),
-            child: Text('✅ 감지된 넙치 모두 정상으로 보입니다.',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 16)),
-          )
-        else ...[
-          const Padding(
-            padding: EdgeInsets.fromLTRB(16, 8, 16, 4),
-            child: Text('권장 조치',
-                style:
-                    TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-          ),
-          for (final f in alerts) ActionCard(fish: f),
-        ],
-        const SizedBox(height: 24),
-      ],
-    );
-  }
-
-  Widget _tankBanner(TankResult r) {
-    final color = riskColor(r.tankRiskLevel);
-    return Container(
-      width: double.infinity,
-      margin: const EdgeInsets.fromLTRB(12, 12, 12, 0),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: color, width: 1.5),
-      ),
-      child: Row(
-        children: [
-          Icon(
-            r.tankRiskLevel == 'normal'
-                ? Icons.check_circle
-                : Icons.warning_amber_rounded,
-            color: color,
-            size: 36,
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('수조 상태: ${urgencyLabel(r.tankRiskLevel)}',
-                    style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: color)),
-                const SizedBox(height: 2),
-                Text(
-                  '넙치 ${r.fishCount}마리 중 ${r.diseasedCount}마리 이상 징후'
-                  '${r.hasContagious ? ' · 전염성 의심' : ''}',
-                  style: const TextStyle(color: Colors.black87),
-                ),
-              ],
-            ),
-          ),
-        ],
       ),
     );
   }

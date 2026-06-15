@@ -194,6 +194,7 @@ class PipelineService {
     if (w <= 1 || h <= 1) return null;
 
     final cropped = img.copyCrop(src, x: x1, y: y1, width: w, height: h);
-    return Uint8List.fromList(img.encodeJpg(cropped, quality: 90));
+    // cls 입력용 — 품질 80 이면 충분하고 인코딩이 더 빠르다(메인 스레드 부하 완화).
+    return Uint8List.fromList(img.encodeJpg(cropped, quality: 80));
   }
 }
