@@ -41,101 +41,232 @@ symptom_disease_map:
     - name: 스쿠티카병
       probability: 0.7
       contagious: true
+      pathogen: "섬모충 Miamiensis avidus"
+      lethal: true
+      mortality_rate: "50~90%"
     - name: 백점병
       probability: 0.3
       contagious: true
+      pathogen: "섬모충 Cryptocaryon irritans"
+      lethal: true
+      mortality_rate: "30~70%"
   hemorrhage:
     - name: VHS(바이러스성출혈성패혈증)
       probability: 0.4
       contagious: true
+      pathogen: "VHS 바이러스 (Novirhabdovirus)"
+      lethal: true
+      mortality_rate: "30~70%"
     - name: 비브리오병
       probability: 0.35
       contagious: true
+      pathogen: "Vibrio anguillarum 등 비브리오균"
+      lethal: true
+      mortality_rate: "20~50%"
     - name: 연쇄구균증
       probability: 0.25
       contagious: true
+      pathogen: "Streptococcus iniae/parauberis"
+      lethal: true
+      mortality_rate: "20~40%"
   color_change:
     - name: 스쿠티카병
       probability: 0.4
       contagious: true
+      pathogen: "섬모충 Miamiensis avidus"
+      lethal: true
+      mortality_rate: "50~90%"
     - name: 비브리오병
       probability: 0.35
       contagious: true
-    - name: 기타
+      pathogen: "Vibrio 세균"
+      lethal: true
+      mortality_rate: "20~50%"
+    - name: 스트레스성 체색변화
       probability: 0.25
       contagious: false
+      pathogen: "없음 (환경 스트레스)"
+      lethal: false
+      mortality_rate: "낮음"
   tumor:
     - name: 림포시스티스병
       probability: 0.9
       contagious: false
+      pathogen: "Lymphocystivirus (이리도바이러스과)"
+      lethal: false
+      mortality_rate: "1% 미만"
   ulcer:
     - name: 비브리오병
       probability: 0.6
       contagious: true
+      pathogen: "Vibrio anguillarum/vulnificus"
+      lethal: true
+      mortality_rate: "20~50%"
     - name: 에드워드병
       probability: 0.4
       contagious: true
+      pathogen: "Edwardsiella tarda"
+      lethal: true
+      mortality_rate: "30~60%"
   emaciation:
     - name: 여윔병
-      probability: 0.8
+      probability: 0.5
       contagious: false
+      pathogen: "없음 (영양 부족, 만성 스트레스)"
+      lethal: false
+      mortality_rate: "10% 미만"
+    - name: 내부기생충감염
+      probability: 0.3
+      contagious: false
+      pathogen: "장내 기생충 (선충류 등)"
+      lethal: false
+      mortality_rate: "10~20%"
+    - name: 만성세균감염
+      probability: 0.2
+      contagious: true
+      pathogen: "다양한 세균 (만성)"
+      lethal: true
+      mortality_rate: "10~30%"
 
 # 질병 → 대응 가이드
 disease_response:
   스쿠티카병:
     action: LOWER_TEMPERATURE
-    temperature: "18도 이하로 낮추기"
-    detail: "수온이 높을수록 충의 증식과 폐사 증가. 즉시 감염 개체 격리, 사육밀도 낮추기."
+    temperature: "18도 이하로 즉시 낮추기"
     urgency: immediate
     isolate: true
+    steps:
+      - "감염 개체 즉시 별도 수조로 격리"
+      - "수온을 18도 이하로 낮추기 (충 증식 억제)"
+      - "포르말린 100ppm 약욕 30~60분 실시"
+      - "사육 밀도 줄이기 (과밀이 주 발병 원인)"
+      - "감염 수조 물 전량 교체 + 기구 소독"
+      - "수조 간 뜰채/호스 등 기구 공유 금지"
+    warning: "폐사율 50~90%. 전염 속도 매우 빠름. 수시간 내 같은 수조 전파 가능."
   VHS(바이러스성출혈성패혈증):
     action: RAISE_TEMPERATURE
     temperature: "20도 이상으로 올리기"
-    detail: "저수온기 질병. 수온 15도 이상에서 폐사율 감소. 감염 수조 격리, 기구 소독."
     urgency: immediate
     isolate: true
+    steps:
+      - "감염 수조 즉시 격리 (수조 단위 격리)"
+      - "수온을 20도 이상으로 올리기 (15도 이상에서 폐사율 급감)"
+      - "바이러스성이라 항생제 무효 — 수온 관리가 핵심"
+      - "감염 수조의 배수/기구 완전 소독"
+      - "폐사 개체 즉시 제거 (바이러스 확산 방지)"
+      - "사료 급이 중단 또는 감량"
+    warning: "법정 전염병. 폐사율 30~70%. 저수온기(10~15도)에 집중 발생. 백신 없음."
   비브리오병:
     action: ISOLATE_AND_TREAT
-    temperature: "유지"
-    detail: "감염 어체 격리, 항생제 투여 고려. 수질 관리 강화."
+    temperature: "25도 이하로 유지"
     urgency: danger
     isolate: true
+    steps:
+      - "감염 개체 즉시 격리"
+      - "항생제 경구투여: 옥시테트라사이클린 50mg/kg 체중, 5~7일"
+      - "또는 플로르페니콜 10mg/kg 체중, 5일"
+      - "수온 25도 이하로 유지 (고수온에서 균 증식 가속)"
+      - "수질 관리 강화 — 암모니아, 아질산 수치 확인"
+      - "사료에 면역 증강제(비타민C 등) 첨가"
+      - "상처 부위 2차 감염 방지를 위해 수조 청결 유지"
+    warning: "고수온기(25도 이상) 다발. 폐사율 20~50%. 수조 간 기구로 전파됨."
   연쇄구균증:
     action: ISOLATE_AND_TREAT
     temperature: "유지"
-    detail: "감염 어체 격리. 수온 관리 및 항생제 치료."
     urgency: danger
     isolate: true
+    steps:
+      - "감염 개체 즉시 격리"
+      - "항생제 투여: 아목시실린 또는 에리스로마이신"
+      - "수온 급변 방지 (면역력 저하 원인)"
+      - "사육 밀도 줄이기"
+      - "사료 급이량 조절 (소화 부담 감소)"
+    warning: "고수온기(20도 이상) 다발. 폐사율 20~40%. 눈 돌출, 복부 팽만 동반 가능."
   림포시스티스병:
     action: MONITOR
     temperature: "유지"
-    detail: "자연 치유 가능. 스트레스 줄이고 수질 관리에 집중."
     urgency: watch
     isolate: false
+    steps:
+      - "격리 불필요 — 전염성 낮고 치사율 거의 없음"
+      - "자연 치유 가능 (수주~수개월 후 자연 소실)"
+      - "스트레스 요인 제거 (과밀, 수질 악화, 급격한 환경 변화)"
+      - "수질 관리에 집중 — 용존산소, pH, 암모니아 모니터링"
+      - "심한 개체는 출하 시 외관 문제로 분리 보관"
+      - "별도 치료제 없음"
+    warning: "치사율 1% 미만. 상품 가치 저하가 주 문제. 스트레스 환경에서 재발 가능."
   여윔병:
     action: IMPROVE_NUTRITION
     temperature: "유지"
-    detail: "사료 품질/양 확인. 밀도 줄이기."
     urgency: watch
     isolate: false
+    steps:
+      - "격리 불필요 — 비전염성"
+      - "사료 품질/급이량/급이 횟수 점검"
+      - "약한 개체는 별도 수조에서 충분히 급이"
+      - "사육 밀도 줄이기 (약한 개체가 사료 경쟁에서 밀림)"
+      - "내부 기생충 검사 실시 (장내 기생충이 원인일 수 있음)"
+      - "비타민/미네랄 보충 사료 급이"
+    warning: "비전염성이나 방치 시 폐사 가능. 사료 경쟁 환경 개선이 핵심."
   백점병:
     action: TREAT
     temperature: "수온 점진적 상승 (25~28도)"
-    detail: "약욕 처리. 수질 관리 강화."
     urgency: danger
     isolate: true
+    steps:
+      - "감염 개체 격리"
+      - "수온을 25~28도로 점진적 상승 (충의 생활사 가속 → 약욕 효과 증대)"
+      - "포르말린 100~200ppm 약욕 30~60분"
+      - "또는 구리 기반 약제 사용"
+      - "3~5일 간격으로 약욕 반복 (충 생활사 주기에 맞춤)"
+      - "수질 관리 강화, 환수 철저"
+    warning: "전염성 높음. 폐사율 30~70%. 수온 상승+약욕 병행이 가장 효과적."
   기타:
     action: MONITOR
     temperature: "유지"
-    detail: "정확한 원인 파악 필요. 수질/사료/환경 점검 후 지속 관찰."
     urgency: watch
     isolate: false
+    steps:
+      - "수질 전수 검사 (수온, pH, 암모니아, 용존산소, 염도)"
+      - "사료/환경 변화 이력 확인"
+      - "증상 변화 매일 관찰 기록"
+      - "48시간 이내 악화 시 전문가 진단 의뢰"
+    warning: "원인 불명. 경과 관찰하되 악화 시 즉시 전문 수의사 상담."
   에드워드병:
     action: ISOLATE_AND_TREAT
-    temperature: "유지"
-    detail: "내장 출혈, 패혈증 유발. 감염 어체 즉시 격리, 항생제 투여 검토."
+    temperature: "25도 이하로 유지"
     urgency: danger
     isolate: true
+    steps:
+      - "감염 어체 즉시 격리"
+      - "항생제 투여: 플로르페니콜 10mg/kg 체중, 5~7일"
+      - "또는 옥시테트라사이클린 경구 투여"
+      - "수온 25도 이하로 유지 (고수온에서 균 증식 가속)"
+      - "폐사 개체 즉시 제거 (수중 균 확산 방지)"
+      - "수조 간 기구 교차 사용 금지"
+    warning: "내장 출혈, 패혈증 유발. 폐사율 30~60%. 고수온기(25도 이상) 다발."
+  내부기생충감염:
+    action: TREAT
+    temperature: "유지"
+    urgency: watch
+    isolate: false
+    steps:
+      - "장내 기생충 현미경 검사로 확진"
+      - "프라지콴텔 등 구충제 경구 투여"
+      - "사료에 혼합 급이 (체중 기준 용량)"
+      - "2주 후 재검사로 효과 확인"
+    warning: "비전염성이나 만성적으로 성장 저하 유발. 정기 구충이 중요."
+  만성세균감염:
+    action: ISOLATE_AND_TREAT
+    temperature: "유지"
+    urgency: danger
+    isolate: true
+    steps:
+      - "감염 개체 격리"
+      - "항생제 감수성 검사 후 적합한 항생제 투여"
+      - "수질 관리 강화"
+      - "면역 증강제 사료 급이"
+    warning: "만성 감염은 항생제 내성 위험. 감수성 검사 필수."
 
 # 위험도 점수 (증상별 심각도)
 symptom_severity:
