@@ -43,19 +43,33 @@ YuvPayload extractYuvPayload(CameraImage image, {int rotationDegrees = 0}) {
 }
 
 /// 프레임을 백그라운드 isolate 에서 변환한다 (UI 블로킹 방지).
-Future<ConvertedFrame> convertFrame(YuvPayload p, {int jpegQuality = 95}) {
-  return Isolate.run(() => _convert(p, jpegQuality));
+///
+/// [targetWidth] 로 추론용 이미지를 축소한다. 프리뷰(CameraPreview)는 카메라
+/// 텍스처를 그대로 고해상도로 그리므로 화질에 영향이 없고, 추론 입력만 작아져
+/// YUV→RGB 변환·인코딩·크롭 비용이 크게 줄어든다(끊김 완화).
+Future<ConvertedFrame> convertFrame(
+  YuvPayload p, {
+  int jpegQuality = 80,
+  int targetWidth = 640,
+}) {
+  return Isolate.run(() => _convert(p, jpegQuality, targetWidth));
 }
 
-ConvertedFrame _convert(YuvPayload p, int jpegQuality) {
-  final out = img.Image(width: p.width, height: p.height);
+ConvertedFrame _convert(YuvPayload p, int jpegQuality, int targetWidth) {
+  // 원본보다 키우지는 않는다. 가로 기준으로 축소 비율 계산.
+  final scale = targetWidth >= p.width ? 1.0 : targetWidth / p.width;
+  final ow = (p.width * scale).round();
+  final oh = (p.height * scale).round();
+  final out = img.Image(width: ow, height: oh);
 
-  for (int row = 0; row < p.height; row++) {
-    final yRow = row * p.yRowStride;
-    final uvRow = (row >> 1) * p.uvRowStride;
-    for (int col = 0; col < p.width; col++) {
-      final yIndex = yRow + col;
-      final uvIndex = uvRow + (col >> 1) * p.uvPixelStride;
+  for (int oy = 0; oy < oh; oy++) {
+    final srcRow = (oy / scale).floor();
+    final yRow = srcRow * p.yRowStride;
+    final uvRow = (srcRow >> 1) * p.uvRowStride;
+    for (int ox = 0; ox < ow; ox++) {
+      final srcCol = (ox / scale).floor();
+      final yIndex = yRow + srcCol;
+      final uvIndex = uvRow + (srcCol >> 1) * p.uvPixelStride;
 
       final yv = p.y[yIndex];
       final uv = p.u[uvIndex] - 128;
@@ -66,8 +80,8 @@ ConvertedFrame _convert(YuvPayload p, int jpegQuality) {
       int b = (yv + 1.772 * uv).round();
 
       out.setPixelRgb(
-        col,
-        row,
+        ox,
+        oy,
         r < 0 ? 0 : (r > 255 ? 255 : r),
         g < 0 ? 0 : (g > 255 ? 255 : g),
         b < 0 ? 0 : (b > 255 ? 255 : b),
