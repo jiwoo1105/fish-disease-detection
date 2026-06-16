@@ -73,8 +73,6 @@ In other words, this model answers *"which symptom does this fish have?"*. A con
 
 The predicted symptom is mapped through `classes.yaml` to its most likely disease (with pathogen, mortality rate, and step-by-step response actions) and aggregated into a per-fish and per-tank risk level (`watch / danger / immediate`). Fusing this with live water-quality sensors (temperature, DO, pH, salinity) is planned future work — see [Future Directions](#future-directions).
 
-> The same S1 + S2 models run in two places: a **FastAPI cloud server** (`.pt`, PyTorch) and a fully **on-device Flutter app** (`.tflite`, offline-capable).
-
 ---
 
 ## Dataset
@@ -83,14 +81,9 @@ The models are trained on a combination of public datasets, used differently for
 
 | Dataset | Volume used | Stage / purpose |
 |---|---|---|
-| **AI Hub — Flounder Disease Data** | 48,000 RGB images + 48,765 JSON labels (of 60,956) | **Stage 2 — Symptom classification (7 classes).** Annotations are mapped to classes by symptom code, then converted into cropped fish images. |
-| **AI Hub — Fish Imaging Video & other sets** | ~80,000 images (of 100,200) | **Stage 1 — Flounder detection.** Underwater bounding-box labels train and validate the YOLO detection model. |
-| **Roboflow fish-detection set** | ~2,000 images | **Domain reinforcement** — fish images from varied tank environments and angles, to strengthen the detection model. |
-
-**7 symptom classes (Stage 2):** `normal`, `hemorrhage` (출혈), `white_spot` (백점), `tumor` (반점/결절), `color_change` (체색변화), `emaciation` (여윔), `ulcer` (궤양).
-
-- **Sources:** [AI Hub](https://aihub.or.kr/) (Korean public open-data) and [Roboflow](https://roboflow.com/).
-- Stage 1 (detection) is trained on underwater bounding-box labels; Stage 2 (classification) uses cropped, symptom-coded RGB images across the 7 classes.
+| **[AI Hub — Flounder Disease Data](https://aihub.or.kr/aihubdata/data/view.do?currMenu=115&topMenu=100&dataSetSn=71345)** | 48,000 RGB images + 48,765 JSON labels (of 60,956) | **Stage 2 — Symptom classification (7 classes).** Annotations are mapped to classes by symptom code, then converted into cropped fish images. |
+| **[AI Hub — Fish Imaging Video & other sets](https://www.aihub.or.kr/aihubdata/data/view.do?aihubDataSe=data&currMenu=1&dataSetSn=154)** | ~80,000 images (of 100,200) | **Stage 1 — Flounder detection.** Underwater bounding-box labels train and validate the YOLO detection model. |
+| **[Roboflow fish-detection set](https://roboflow.com/)** | ~2,000 images | **Domain reinforcement** — fish images from varied tank environments and angles, to strengthen the detection model. |
 
 ---
 
