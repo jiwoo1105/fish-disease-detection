@@ -83,7 +83,7 @@ The models are trained on a combination of public datasets, used differently for
 |---|---|---|
 | **[AI Hub — Flounder Disease Data](https://aihub.or.kr/aihubdata/data/view.do?currMenu=115&topMenu=100&dataSetSn=71345)** | 48,000 RGB images + 48,765 JSON labels (of 60,956) | **Stage 2 — Symptom classification (7 classes).** Annotations are mapped to classes by symptom code, then converted into cropped fish images. |
 | **[AI Hub — Fish Imaging Video & other sets](https://www.aihub.or.kr/aihubdata/data/view.do?aihubDataSe=data&currMenu=1&dataSetSn=154)** | ~80,000 images (of 100,200) | **Stage 1 — Flounder detection.** Underwater bounding-box labels train and validate the YOLO detection model. |
-| **[https://sites.google.com/view/cvl-jnu/publication/FishDisease/fishdisease_dataset?utm_source=chatgpt.com)** | ~2,000 images | **Domain reinforcement** — fish images from varied tank environments and angles, to strengthen the detection model. |
+| **[https://sites.google.com/view/cvl-jnu/publication/FishDisease/fishdisease_dataset]** | ~2,000 images | **Domain reinforcement** — fish images from varied tank environments and angles, to strengthen the detection model. |
 
 ---
 
