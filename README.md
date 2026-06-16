@@ -9,7 +9,7 @@ An end-to-end deep learning pipeline that detects individual olive flounder (Kor
 
 🔗 **Source code:** https://github.com/jiwoo1105/fish-disease-detection
 
-▶️ **Demo video (YouTube):** _`<TODO: add YouTube link>`_
+▶️ **Demo video (YouTube):** 
 
 ---
 
@@ -34,7 +34,7 @@ The result is an objective, standardized, real-time anomaly index that lets farm
 
 ## Demo
 
-▶️ **Full demo video:** _`<TODO: add YouTube link>`_
+▶️ **Full demo video:** 
 
 | Tank monitoring grid | Real-time detection overlay | Diagnosis & response |
 |---|---|---|
