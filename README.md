@@ -8,6 +8,7 @@
 An end-to-end deep learning pipeline that detects individual olive flounder (Korean: 넙치 / 광어) in aquaculture tanks, classifies disease symptoms, and turns each symptom into an actionable disease diagnosis with a risk score and response guide — running both as a **FastAPI server** and as a fully **on-device Android app**.
 
 🔗 **Source code:** https://github.com/jiwoo1105/fish-disease-detection
+
 ▶️ **Demo video (YouTube):** _`<TODO: add YouTube link>`_
 
 ---
