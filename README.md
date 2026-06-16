@@ -15,14 +15,21 @@ An end-to-end deep learning pipeline that detects individual olive flounder (Kor
 
 ## Introduction
 
-In high-density olive flounder farms, disease spreads within hours and can wipe out an entire tank. Today this is caught by farm managers visually inspecting hundreds of thousands of fish — a process that is labor-intensive, inconsistent, and often too late.
+Fish disease is not only a welfare issue for individual fish but a serious industrial problem. According to the World Organisation for Animal Health (WOAH), aquatic animal diseases threaten sustainable aquaculture and cause **more than USD 6 billion in global economic losses every year** [1]. Aquaculture is also growing fast: in 2022, global fisheries and aquaculture production reached **223.2 million tonnes, and aquaculture output surpassed capture fisheries for the first time** [1].
 
-**Flatfish Doctor** automates that monitoring with a two-stage computer-vision pipeline:
+In Korea, **olive flounder is the No. 1 farmed fish species**, accounting for over 50% of national aquaculture fish production — **45,884 tonnes (50.2%) in 2022** [2]. Because flounder are raised in dense groups, a disease in one tank can spread within hours, so early detection is critical.
+
+Yet many farms still rely on **manual visual inspection** of hundreds of thousands of fish — labor-intensive, inconsistent, and often too late. **Flatfish Doctor** automates that monitoring with a two-stage computer-vision pipeline:
 
 1. **Detect** every fish in a tank image/video stream and crop it out.
 2. **Classify** each cropped fish into one of **7 symptom states**, then map the symptom to its most likely disease, mortality risk, and concrete response actions (temperature control, isolation, medication, etc.).
 
 The result is an objective, standardized, real-time anomaly index that lets farmers act early instead of reacting to mass mortality. The same logic ships as an offline mobile app so it works at the tank-side without a server connection.
+
+### References
+
+1. World Organisation for Animal Health (WOAH), "Acting for better aquatic animal health and welfare worldwide," Apr. 3, 2022. [Online]. Available: https://www.woah.org/en/blog/2022/04/03/acting-for-better-aquatic-animal-health-and-welfare-worldwide/
+2. Ministry of Oceans and Fisheries (MOF), Republic of Korea. [Online]. Available: https://mods.go.kr/board.es?mid=a10301010000&bid=225&act=view&list_no=430057
 
 ---
 
@@ -64,7 +71,7 @@ In other words, this model answers *"which symptom does this fish have?"*. A con
 
 ### Diagnosis & Risk (rule-based)
 
-The predicted symptom is mapped through `classes.yaml` to its most likely disease (with pathogen, mortality rate, and step-by-step response actions) and combined with optional water-quality sensors (temperature, DO, pH, salinity) to compute a per-fish and per-tank risk level (`watch / danger / immediate`).
+The predicted symptom is mapped through `classes.yaml` to its most likely disease (with pathogen, mortality rate, and step-by-step response actions) and aggregated into a per-fish and per-tank risk level (`watch / danger / immediate`). Fusing this with live water-quality sensors (temperature, DO, pH, salinity) is planned future work — see [Future Directions](#future-directions).
 
 > The same S1 + S2 models run in two places: a **FastAPI cloud server** (`.pt`, PyTorch) and a fully **on-device Flutter app** (`.tflite`, offline-capable).
 
@@ -92,7 +99,6 @@ The models are trained on a combination of public datasets, used differently for
 - 🎯 **Multi-fish detection** in a single tank frame, robust to overlap and turbid water.
 - 🔬 **7-class symptom classification** per fish.
 - 🩺 **Symptom → disease mapping** with probability, pathogen, mortality rate, and step-by-step response actions.
-- 🌡️ **Water-quality fusion** — optional temperature / DO / pH / salinity inputs adjust the risk score and trigger combined alerts (e.g. high temperature + Scuticociliatosis).
 - 🚦 **Tank-level risk levels**: `watch → danger → immediate`.
 - 📱 **Fully on-device Android app** (offline) + 🖥️ **FastAPI server** from the same model set.
 
@@ -154,4 +160,5 @@ A risk score combines per-symptom severity, the share of diseased fish in a tank
 - **Real-time edge deployment.** Convert models to TFLite/ONNX for on-device inference on mobile (Flutter) and edge hardware (Jetson Nano, Raspberry Pi), enabling offline real-time diagnostics at the farm without server dependency.
 - **Disease alert with visual evidence.** On detection, attach the cropped diseased-fish photo to push notifications, so managers receive the disease name, risk level, recommended actions, and the evidence photo — enabling faster decisions without checking the camera.
 
+---
 
