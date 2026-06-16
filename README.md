@@ -24,12 +24,6 @@ In high-density olive flounder farms, disease spreads within hours and can wipe 
 
 The result is an objective, standardized, real-time anomaly index that lets farmers act early instead of reacting to mass mortality. The same logic ships as an offline mobile app so it works at the tank-side without a server connection.
 
-**Key contributions**
-- 2-stage *detect → classify* vision pipeline tuned for turbid water and low-light indoor tanks.
-- A curated **symptom → disease → response** knowledge base (`classes.yaml`) co-designed with aquaculture disease references.
-- Risk scoring that fuses visual symptoms with optional **water-quality sensors** (temperature, DO, pH, salinity).
-- Two deployment targets from one model set: a **FastAPI** service and an **on-device Flutter** app.
-
 ---
 
 ## Demo
@@ -53,38 +47,11 @@ The app monitors multiple tanks, draws per-fish bounding boxes with the predicte
 
 ---
 
-## System Architecture / Block Diagram
+## System Architecture 
 
 ```
-                 ┌─────────────────────────────────────────────┐
-                 │   Camera / Image / Video  (tank monitoring)  │
-                 └───────────────────────┬─────────────────────┘
-                                         │
-        ┌────────────────────────────────▼────────────────────────────────┐
-        │  STAGE 1 — Object Detection  (YOLO det)                          │
-        │  Locate every flounder → bounding boxes                         │
-        └────────────────────────────────┬────────────────────────────────┘
-                                         │  crop each fish (remove background noise)
-        ┌────────────────────────────────▼────────────────────────────────┐
-        │  STAGE 2 — Symptom Classification  (YOLO cls)                    │
-        │  normal · hemorrhage · white_spot · tumor ·                      │
-        │  color_change · emaciation · ulcer                              │
-        └────────────────────────────────┬────────────────────────────────┘
-                                         │  (server only) optional Stage 2.5
-        ┌────────────────────────────────▼────────────────────────────────┐
-        │  STAGE 2.5 — Lesion Localization  (YOLO lesion_det) [optional]   │
-        └────────────────────────────────┬────────────────────────────────┘
-                                         │
-        ┌────────────────────────────────▼────────────────────────────────┐
-        │  STAGE 3 — Disease Mapping & Risk Scoring  (classes.yaml)        │
-        │  symptom → suspected disease (probability, pathogen, mortality)  │
-        │  + water-quality sensors → per-fish & per-tank risk score        │
-        └────────────────────────────────┬────────────────────────────────┘
-                                         │
-        ┌────────────────────────────────▼────────────────────────────────┐
-        │  OUTPUT — Risk level (watch/danger/immediate) + response guide   │
-        │  FastAPI JSON  ·  Annotated image  ·  On-device app alert card   │
-        └─────────────────────────────────────────────────────────────────┘
+<img width="984" height="537" alt="image" src="https://github.com/user-attachments/assets/0590fb14-bb11-4b64-a3e6-50a2b48b9e9e" />
+
 ```
 
 **Two deployment targets share the same models:**
@@ -169,75 +136,6 @@ Trained with Ultralytics YOLO. Selected runs:
 
 ---
 
-## Repository Structure
-
-```
-fish-disease-detection/
-├── AI/                          # Python: training, inference, server
-│   ├── configs/classes.yaml     # symptom↔disease↔response + risk rules (knowledge base)
-│   ├── scripts/
-│   │   ├── prepare_multiclass.py    # AIHub JSON → YOLO dataset (7-class)
-│   │   ├── train_det.py / train_cls.py / train_seg.py / train_lesion_det.py
-│   │   ├── inference.py             # 3-stage inference (image / video)
-│   │   ├── disease_mapper.py        # symptom → disease
-│   │   ├── risk_scorer.py           # sensor & tank risk scoring
-│   │   └── run_all.py               # prepare → train end-to-end
-│   ├── server/main.py           # FastAPI app
-│   ├── models/{det,cls,seg,lesion_det}/best_*.pt
-│   └── PROJECT_PLAN.md
-├── FRONT/                       # Flutter Android app "넙치닥터 / Flatfish Doctor"
-│   ├── lib/                     # det→crop→cls pipeline + disease config UI
-│   └── README.md                # app-specific build guide
-├── test_samples/                # sample images by symptom
-└── docs/screenshots/            # app screenshots (this README)
-```
-
----
-
-## Getting Started
-
-### A. AI pipeline & server (Python)
-
-```bash
-cd AI
-python -m venv venv && source venv/bin/activate      # Windows: venv\Scripts\activate
-pip install -r requirements.txt
-
-# 1) Prepare dataset from AIHub labels (after downloading the data)
-python scripts/prepare_multiclass.py
-
-# 2) Train (data prep → detection → classification)
-python scripts/run_all.py
-
-# 3) Run inference on a single image or video
-python scripts/inference.py --image path/to/image.jpg
-python scripts/inference.py --video path/to/video.mp4
-
-# 4) Serve the API
-uvicorn server.main:app --host 0.0.0.0 --port 8000
-```
-
-**API endpoints**
-
-| Method | Endpoint | Description |
-|---|---|---|
-| `POST` | `/api/analyze` | Upload an image (+ optional `temperature`, `do`, `ph`, `salinity`) → 2/3-stage inference → JSON result + annotated image (base64) |
-| `GET`  | `/api/diseases/{symptom}` | Resolve a symptom to its candidate disease profiles |
-| `GET`  | `/api/classes` | List supported symptom classes |
-| `GET`  | `/api/health` | Health / model-load check |
-
-### B. Android app (Flutter)
-
-```bash
-cd FRONT
-flutter pub get
-dart test test/logic_test.dart        # pure-Dart logic checks
-flutter build apk --debug             # or: flutter run
-```
-
-The app runs `det.tflite` + `cls.tflite` on-device (no server) and reads `assets/config/classes.yaml` for the disease mapping. See [`FRONT/README.md`](FRONT/README.md) for build details (incl. a Windows non-ASCII path workaround).
-
----
 
 ## Disease Mapping Reference
 
@@ -256,18 +154,5 @@ A risk score combines per-symptom severity, the share of diseased fish in a tank
 
 ---
 
-## Roadmap
 
-- **Visual-noise robustness** — turbid water, lighting changes, and dynamic swimming still cause normal tissue to be misread as lesions.
-- **Dataset refinement** — add more clean positive/negative samples to push Stage-1 mAP above the 0.45 target.
-- **Confidence-gate fix (app)** — the mobile app currently uses a high `0.85` classification gate as a stop-gap against false positives in turbid water; the proper fix is fine-tuning `best_cls.pt` on real tank imagery and restoring a normal threshold.
-- **Edge deployment** — broaden TFLite/ONNX optimization for offline, low-power farm hardware.
-
----
-
-## Tech Stack
-
-**AI:** Python, Ultralytics YOLO, PyTorch, OpenCV, FastAPI, Uvicorn
-**Mobile:** Flutter / Dart, `ultralytics_yolo` (on-device TFLite/CoreML)
-**Data:** AIHub Olive Flounder Disease Dataset
 
