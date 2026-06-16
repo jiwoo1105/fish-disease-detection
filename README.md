@@ -8,8 +8,7 @@
 An end-to-end deep learning pipeline that detects individual olive flounder (Korean: 넙치 / 광어) in aquaculture tanks, classifies disease symptoms, and turns each symptom into an actionable disease diagnosis with a risk score and response guide — running both as a **FastAPI server** and as a fully **on-device Android app**.
 
 🔗 **Source code:** https://github.com/jiwoo1105/fish-disease-detection
-
-▶️ **Demo video (YouTube):** 
+▶️ **Demo video (YouTube):** _`<TODO: add YouTube link>`_
 
 ---
 
@@ -28,7 +27,7 @@ The result is an objective, standardized, real-time anomaly index that lets farm
 
 ## Demo
 
-▶️ **Full demo video:** 
+▶️ **Full demo video:** _`<TODO: add YouTube link>`_
 
 | Tank monitoring grid | Real-time detection overlay | Diagnosis & response |
 |---|---|---|
@@ -36,67 +35,54 @@ The result is an objective, standardized, real-time anomaly index that lets farm
 
 The app monitors multiple tanks, draws per-fish bounding boxes with the predicted symptom and confidence (green = normal, red/orange = diseased), computes a tank-level risk level (`watch / danger / immediate`), and pops a detailed diagnosis card with pathogen, mortality rate, and step-by-step response measures.
 
-<details>
-<summary>More screenshots</summary>
-
 | Detection (ulcer) | Detection results log | Diagnosis (Lymphocystis) |
 |---|---|---|
 | ![Ulcer](docs/screenshots/03_detection_ulcer.png) | ![Results](docs/screenshots/04_results_list.png) | ![Lymphocystis](docs/screenshots/05_diagnosis_lymphocystis.png) |
 
-</details>
+---
+
+## System Architecture
+
+![System Architecture](docs/architecture.png)
+
+The system is organized into four layers — data & preprocessing, AI model training, cloud inference & service, and the client application. At its core is a **2-stage deep-learning pipeline (S1 + S2)**, followed by a rule-based diagnosis step that turns the predicted symptom into an actionable response.
+
+### Stage 1 — Object Detection (fish localization)
+
+First, the camera captures the whole tank, and the first job is to find where each individual flounder is. A **YOLO26 detection model** draws a bounding box around every fish in the frame. Aquaculture tanks are hard environments — the water is turbid, fish overlap each other, and lighting is uneven — and this model's role is to separate each fish under exactly those conditions.
+
+Each detected box is then **cropped** out of the image. Judging disease directly from the full tank image would fail because background noise (water color, ripples, tank floor) overwhelms the signal — so only the cropped fish is passed on to Stage 2.
+
+### Stage 2 — Symptom Classification
+
+Each cropped fish image is fed to a **YOLO26 classification model** that decides which of **7 symptom classes** it belongs to:
+
+`normal` · `hemorrhage` (출혈) · `white_spot` (백점) · `tumor` (반점/결절) · `color_change` (체색변화) · `emaciation` (여윔) · `ulcer` (궤양).
+
+In other words, this model answers *"which symptom does this fish have?"*. A confidence threshold is applied: if the top prediction is below ~50%, confidence is considered insufficient and the fish is treated as `normal`. When the result is **not** `normal` — i.e. a disease is suspected — it is handed to the diagnosis step.
+
+### Diagnosis & Risk (rule-based)
+
+The predicted symptom is mapped through `classes.yaml` to its most likely disease (with pathogen, mortality rate, and step-by-step response actions) and combined with optional water-quality sensors (temperature, DO, pH, salinity) to compute a per-fish and per-tank risk level (`watch / danger / immediate`).
+
+> The same S1 + S2 models run in two places: a **FastAPI cloud server** (`.pt`, PyTorch) and a fully **on-device Flutter app** (`.tflite`, offline-capable).
 
 ---
 
-## System Architecture 
+## Dataset
 
-```
-<img width="984" height="537" alt="image" src="https://github.com/user-attachments/assets/0590fb14-bb11-4b64-a3e6-50a2b48b9e9e" />
+The models are trained on a combination of public datasets, used differently for each stage:
 
-```
-
-**Two deployment targets share the same models:**
-
-| | Pipeline | Runtime | Models |
-|---|---|---|---|
-| **Server** (`AI/server`) | 3-stage (det → cls → lesion) + mapping | FastAPI / Uvicorn | `.pt` (PyTorch) |
-| **Mobile** (`FRONT`) | 2-stage (det → cls) + mapping | On-device, offline | `.tflite` (float32) |
-
----
-
-## Training Data
-
-- **Source:** AIHub — *Olive Flounder Disease Data* (넙치 질병 데이터), a public Korean government open-data set.
-  🔗 https://aihub.or.kr/aihubdata/data/view.do?currMenu=115&topMenu=100&dataSetSn=71345
-
-### Dataset description
-
-| Property | Value |
-|---|---|
-| Modality | High-resolution RGB images (6000 × 4000 JPG) |
-| Volume | ~916 GB total (full set); RGB subset used for training |
-| Image count | **48,765** training + **6,096** validation (RGB) |
-| Label format | JSON, COCO-like (`images` + `annotations` with bounding boxes) |
-| Raw labels | 21 disease codes + 31 symptom codes per annotation |
-| Extra metadata | body weight, body length, growth level (juvenile/sub-adult/adult) |
-| Collection method | Expert-curated tank imagery with veterinary ground-truth labels (AIHub) |
-
-### Label classes used (Stage 2)
-
-The 31 raw AIHub symptom codes are consolidated into **7 target classes**:
-
-| Class | Korean | Source symptom codes |
+| Dataset | Volume used | Stage / purpose |
 |---|---|---|
-| `normal` | 정상 | symptom_type = null |
-| `hemorrhage` | 출혈 | 1, 2 |
-| `white_spot` | 백점 | 10 |
-| `tumor` | 반점/결절 | 4 |
-| `color_change` | 체색변화 | 3 |
-| `emaciation` | 여윔 | 22 |
-| `ulcer` | 궤양 | 11, 12 |
+| **AI Hub — Flounder Disease Data** | 48,000 RGB images + 48,765 JSON labels (of 60,956) | **Stage 2 — Symptom classification (7 classes).** Annotations are mapped to classes by symptom code, then converted into cropped fish images. |
+| **AI Hub — Fish Imaging Video & other sets** | ~80,000 images (of 100,200) | **Stage 1 — Flounder detection.** Underwater bounding-box labels train and validate the YOLO detection model. |
+| **Roboflow fish-detection set** | ~2,000 images | **Domain reinforcement** — fish images from varied tank environments and angles, to strengthen the detection model. |
 
-Codes for ambiguous/non-target symptoms (exophthalmia, abdominal swelling, gill anomaly, etc.) are excluded. Preprocessing standardizes raw JSON coordinates, removes redundant background, and produces a stratified train/validation split. See `AI/PROJECT_PLAN.md` and `AI/configs/classes.yaml` for the full mapping.
+**7 symptom classes (Stage 2):** `normal`, `hemorrhage` (출혈), `white_spot` (백점), `tumor` (반점/결절), `color_change` (체색변화), `emaciation` (여윔), `ulcer` (궤양).
 
-> ⚠️ The raw dataset is **not** redistributed in this repository — download it from AIHub directly. A small set of sample images lives in `test_samples/` for quick testing.
+- **Sources:** [AI Hub](https://aihub.or.kr/) (Korean public open-data) and [Roboflow](https://roboflow.com/).
+- Stage 1 (detection) is trained on underwater bounding-box labels; Stage 2 (classification) uses cropped, symptom-coded RGB images across the 7 classes.
 
 ---
 
@@ -132,10 +118,9 @@ Trained with Ultralytics YOLO. Selected runs:
 | 1 | 47 | 0.507 | 0.431 | 0.439 | 0.237 |
 | **2 (peak)** | 44 | 0.509 | 0.436 | 0.445 | 0.239 |
 
-> Detection metrics reflect **baseline feasibility**. Overlapping flounder in dark, turbid water remain the main bottleneck; raising Stage-1 mAP above ~0.45 via cleaner positive/negative samples is the top priority (see Roadmap).
+> Detection metrics reflect **baseline feasibility**. Overlapping flounder in dark, turbid water remain the main bottleneck; raising Stage-1 mAP above ~0.45 via cleaner positive/negative samples is the top priority (see Future Directions).
 
 ---
-
 
 ## Disease Mapping Reference
 
@@ -154,5 +139,18 @@ A risk score combines per-symptom severity, the share of diseased fish in a tank
 
 ---
 
+## Limitations
+
+- **No real diseased-fish video for testing.** No real underwater video of diseased flounder was available. One test clip was sourced from YouTube and the other three were AI-generated (Adobe Firefly, Runway). These differ from real farm footage in water color, fish texture, and disease appearance, so performance in actual aquaculture environments remains unverified.
+- **No sensor integration.** The system relies solely on visual image analysis. Real disease management also needs environmental sensors — water temperature, dissolved oxygen, pH, salinity. Without them, the system cannot correlate outbreaks with conditions (e.g. scuticociliatosis accelerates above 20 °C) or trigger temperature-based automated responses.
+
+---
+
+## Future Directions
+
+- **Real farm data collection.** Partner with Jeju flounder farms to collect real underwater disease footage and retrain the models on actual tank environments, bridging the domain gap between lab photos and murky underwater conditions.
+- **Sensor integration + AI fusion.** Fuse water-quality sensors (temperature, DO, pH, salinity) with visual detection — e.g. if white spot is detected **and** water temperature exceeds 20 °C, automatically escalate the alert and recommend lowering the temperature.
+- **Real-time edge deployment.** Convert models to TFLite/ONNX for on-device inference on mobile (Flutter) and edge hardware (Jetson Nano, Raspberry Pi), enabling offline real-time diagnostics at the farm without server dependency.
+- **Disease alert with visual evidence.** On detection, attach the cropped diseased-fish photo to push notifications, so managers receive the disease name, risk level, recommended actions, and the evidence photo — enabling faster decisions without checking the camera.
 
 
