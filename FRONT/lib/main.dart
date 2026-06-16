@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'screens/home_screen.dart';
+import 'screens/root_screen.dart';
 
 void main() {
   runApp(const NupchiDoctorApp());
@@ -12,13 +12,13 @@ class NupchiDoctorApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: '넙치닥터',
+      title: 'Flatfish Doctor',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorSchemeSeed: const Color(0xFF0277BD),
         useMaterial3: true,
       ),
-      home: const HomeScreen(),
+      home: const RootScreen(),
     );
   }
 }

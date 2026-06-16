@@ -24,9 +24,10 @@ class PipelineService {
   static const _configAsset = 'assets/config/classes.yaml';
 
   // 물고기 탐지 신뢰도 임계값. tflite 변환 후 det 신뢰도가 크게 낮아져(.pt 0.26 → tflite ~0.08),
-  // 특히 개체가 화면을 꽉 채우면 더 낮다. 개체를 놓치지 않도록 0.05 로 낮춘다.
+  // 특히 개체가 화면을 꽉 채우면 더 낮다. 개체를 놓치지 않도록 낮게 둔다.
+  // 0.05 → 0.03: 박스를 더 널널하게(더 많은 넙치를 잡도록) 추가 하향.
   // (배경이 복잡하면 오탐이 늘 수 있어, 깨끗한 클로즈업 사용을 권장)
-  static const double detConfThreshold = 0.05;
+  static const double detConfThreshold = 0.03;
 
   // 분류 신뢰도 임계값: cls top-1 confidence 가 이 값 미만이면 정상으로 본다.
   // (불확실한 저신뢰 질병 예측이 오경보로 이어지지 않게 하는 게이트)
@@ -80,11 +81,11 @@ class PipelineService {
   /// 이미지 1장 분석 → 수조 집계 결과.
   Future<TankResult> analyze(Uint8List imageBytes) async {
     if (!_ready) {
-      throw StateError('PipelineService.init() 을 먼저 호출하세요.');
+      throw StateError('Call PipelineService.init() first.');
     }
     final decoded = img.decodeImage(imageBytes);
     if (decoded == null) {
-      throw const FormatException('이미지를 디코딩할 수 없습니다.');
+      throw const FormatException('Failed to decode image.');
     }
     return analyzeDecoded(decoded, imageBytes);
   }
@@ -96,7 +97,7 @@ class PipelineService {
     Uint8List detBytes,
   ) async {
     if (!_ready) {
-      throw StateError('PipelineService.init() 을 먼저 호출하세요.');
+      throw StateError('Call PipelineService.init() first.');
     }
 
     // Stage 1: 넙치 탐지

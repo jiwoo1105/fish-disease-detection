@@ -40,7 +40,7 @@ class _PhotoScreenState extends State<PhotoScreen> {
       await _pipeline.init();
       if (mounted) setState(() => _modelReady = true);
     } catch (e) {
-      if (mounted) setState(() => _error = '모델 로드 실패: $e');
+      if (mounted) setState(() => _error = 'Model load failed: $e');
     }
   }
 
@@ -72,7 +72,7 @@ class _PhotoScreenState extends State<PhotoScreen> {
         _annotated = annotated;
       });
     } catch (e) {
-      if (mounted) setState(() => _error = '분석 실패: $e');
+      if (mounted) setState(() => _error = 'Analysis failed: $e');
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -82,7 +82,7 @@ class _PhotoScreenState extends State<PhotoScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('사진 1장 분석'),
+        title: const Text('Photo Analysis'),
         backgroundColor: const Color(0xFF0277BD),
         foregroundColor: Colors.white,
       ),
@@ -99,7 +99,7 @@ class _PhotoScreenState extends State<PhotoScreen> {
                         ? () => _run(ImageSource.camera)
                         : null,
                     icon: const Icon(Icons.camera_alt),
-                    label: const Text('촬영'),
+                    label: const Text('Camera'),
                   ),
                 ),
                 const SizedBox(width: 10),
@@ -109,7 +109,7 @@ class _PhotoScreenState extends State<PhotoScreen> {
                         ? () => _run(ImageSource.gallery)
                         : null,
                     icon: const Icon(Icons.photo_library),
-                    label: const Text('갤러리'),
+                    label: const Text('Gallery'),
                   ),
                 ),
               ],
@@ -118,7 +118,7 @@ class _PhotoScreenState extends State<PhotoScreen> {
           if (!_modelReady && _error == null)
             const Padding(
               padding: EdgeInsets.all(8),
-              child: Text('모델 로딩 중...'),
+              child: Text('Loading model...'),
             ),
           if (_busy) const LinearProgressIndicator(minHeight: 2),
           Expanded(child: _buildBody()),
@@ -142,7 +142,7 @@ class _PhotoScreenState extends State<PhotoScreen> {
         child: Padding(
           padding: EdgeInsets.all(24),
           child: Text(
-            '넙치 사진을 촬영하거나 갤러리에서 선택하세요.\n질병이 감지되면 대응 행동을 알려드립니다.',
+            'Take or pick a flatfish photo.\nIf a disease is detected, response actions will be shown.',
             textAlign: TextAlign.center,
             style: TextStyle(color: Colors.black54),
           ),
@@ -165,19 +165,19 @@ class _PhotoScreenState extends State<PhotoScreen> {
         if (result.fishCount == 0)
           const Padding(
             padding: EdgeInsets.all(20),
-            child: Text('넙치를 찾지 못했습니다. 더 가까이서 다시 촬영해 보세요.',
+            child: Text('No flatfish found. Try shooting again from closer up.',
                 textAlign: TextAlign.center),
           )
         else if (alerts.isEmpty)
           const Padding(
             padding: EdgeInsets.all(20),
-            child: Text('✅ 감지된 넙치 모두 정상으로 보입니다.',
+            child: Text('✅ All detected flatfish appear normal.',
                 textAlign: TextAlign.center, style: TextStyle(fontSize: 16)),
           )
         else ...[
           const Padding(
             padding: EdgeInsets.fromLTRB(16, 8, 16, 4),
-            child: Text('권장 조치',
+            child: Text('Recommended actions',
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
           ),
           for (final f in alerts) ActionCard(fish: f),
@@ -212,15 +212,15 @@ class _PhotoScreenState extends State<PhotoScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('수조 상태: ${urgencyLabel(r.tankRiskLevel)}',
+                Text('Tank status: ${urgencyLabel(r.tankRiskLevel)}',
                     style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                         color: color)),
                 const SizedBox(height: 2),
                 Text(
-                  '넙치 ${r.fishCount}마리 중 ${r.diseasedCount}마리 이상 징후'
-                  '${r.hasContagious ? ' · 전염성 의심' : ''}',
+                  '${r.diseasedCount} of ${r.fishCount} flatfish show abnormal signs'
+                  '${r.hasContagious ? ' · contagious suspected' : ''}',
                   style: const TextStyle(color: Colors.black87),
                 ),
               ],

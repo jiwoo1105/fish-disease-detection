@@ -465,11 +465,14 @@ class _BoxPainter extends CustomPainter {
 
     for (final f in fish) {
       final b = f.bbox;
+      // 박스를 10% 넉넉하게 그린다.
+      final padX = (b.right - b.left) * 0.10;
+      final padY = (b.bottom - b.top) * 0.10;
       final rect = Rect.fromLTRB(
-        b.left * scale + dx,
-        b.top * scale + dy,
-        b.right * scale + dx,
-        b.bottom * scale + dy,
+        (b.left - padX) * scale + dx,
+        (b.top - padY) * scale + dy,
+        (b.right + padX) * scale + dx,
+        (b.bottom + padY) * scale + dy,
       );
       final color = riskColor(f.riskLevel);
       canvas.drawRect(

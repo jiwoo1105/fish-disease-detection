@@ -16,7 +16,9 @@ class BBox {
 class DiseaseResponse {
   final String action; // 예: LOWER_TEMPERATURE
   final String temperature; // 예: "18도 이하로 낮추기"
-  final String detail;
+  final String detail; // (구버전 호환) 한 줄 설명
+  final List<String> steps; // 단계별 대응
+  final String warning; // 경고/주의 (폐사율·전염성 등)
   final String urgency; // immediate | danger | watch
   final bool isolate;
 
@@ -24,6 +26,8 @@ class DiseaseResponse {
     required this.action,
     required this.temperature,
     required this.detail,
+    this.steps = const [],
+    this.warning = '',
     required this.urgency,
     required this.isolate,
   });

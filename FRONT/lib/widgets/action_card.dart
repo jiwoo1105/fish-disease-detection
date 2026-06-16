@@ -39,7 +39,7 @@ class ActionCard extends StatelessWidget {
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    '${fish.likelyDisease ?? '-'} 의심',
+                    '${fish.likelyDisease ?? '-'} suspected',
                     style: theme.textTheme.titleMedium
                         ?.copyWith(fontWeight: FontWeight.bold),
                   ),
@@ -52,10 +52,10 @@ class ActionCard extends StatelessWidget {
               spacing: 8,
               runSpacing: 4,
               children: [
-                _chip('증상: ${symptomLabel(fish.symptom)}'),
-                _chip('신뢰도 ${(fish.symptomConfidence * 100).round()}%'),
+                _chip('Symptom: ${symptomLabel(fish.symptom)}'),
+                _chip('Confidence ${(fish.symptomConfidence * 100).round()}%'),
                 if (fish.contagious)
-                  _chip('전염성', bg: color.withValues(alpha: 0.15), fg: color),
+                  _chip('Contagious', bg: color.withValues(alpha: 0.15), fg: color),
               ],
             ),
             const Divider(height: 20),
@@ -73,16 +73,16 @@ class ActionCard extends StatelessWidget {
                           style: theme.textTheme.titleSmall
                               ?.copyWith(fontWeight: FontWeight.bold)),
                       if (resp.temperature.isNotEmpty &&
-                          resp.temperature != '유지')
+                          resp.temperature != 'Maintain')
                         Padding(
                           padding: const EdgeInsets.only(top: 2),
-                          child: Text('🌡 수온: ${resp.temperature}',
+                          child: Text('🌡 Temperature: ${resp.temperature}',
                               style: theme.textTheme.bodyMedium),
                         ),
                       if (resp.isolate)
                         Padding(
                           padding: const EdgeInsets.only(top: 2),
-                          child: Text('⚠ 감염 개체 즉시 격리',
+                          child: Text('⚠ Isolate infected fish immediately',
                               style: theme.textTheme.bodyMedium
                                   ?.copyWith(color: color)),
                         ),
@@ -91,11 +91,26 @@ class ActionCard extends StatelessWidget {
                 ),
               ],
             ),
-            if (resp.detail.isNotEmpty) ...[
+            if (resp.steps.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              for (final step in resp.steps)
+                Padding(
+                  padding: const EdgeInsets.only(top: 2),
+                  child: Text('· $step',
+                      style: theme.textTheme.bodySmall
+                          ?.copyWith(color: Colors.black87)),
+                ),
+            ] else if (resp.detail.isNotEmpty) ...[
               const SizedBox(height: 8),
               Text(resp.detail,
                   style: theme.textTheme.bodySmall
                       ?.copyWith(color: Colors.black87)),
+            ],
+            if (resp.warning.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text('⚠ ${resp.warning}',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                      color: color, fontWeight: FontWeight.w600)),
             ],
           ],
         ),

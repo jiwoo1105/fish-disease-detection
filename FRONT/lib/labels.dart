@@ -3,22 +3,22 @@
 import 'package:flutter/material.dart';
 
 const symptomKo = <String, String>{
-  'normal': '정상',
-  'hemorrhage': '출혈',
-  'white_spot': '백점',
-  'tumor': '반점/결절',
-  'color_change': '체색변화',
-  'emaciation': '여윔',
-  'ulcer': '궤양',
+  'normal': 'Normal',
+  'hemorrhage': 'Hemorrhage',
+  'white_spot': 'White spot',
+  'tumor': 'Spot/Nodule',
+  'color_change': 'Color change',
+  'emaciation': 'Emaciation',
+  'ulcer': 'Ulcer',
 };
 
 const actionKo = <String, String>{
-  'LOWER_TEMPERATURE': '수온 낮추기',
-  'RAISE_TEMPERATURE': '수온 올리기',
-  'ISOLATE_AND_TREAT': '격리 후 치료',
-  'TREAT': '치료(약욕)',
-  'IMPROVE_NUTRITION': '영양 개선',
-  'MONITOR': '관찰',
+  'LOWER_TEMPERATURE': 'Lower temperature',
+  'RAISE_TEMPERATURE': 'Raise temperature',
+  'ISOLATE_AND_TREAT': 'Isolate & treat',
+  'TREAT': 'Treat (bath)',
+  'IMPROVE_NUTRITION': 'Improve nutrition',
+  'MONITOR': 'Monitor',
 };
 
 const actionIcon = <String, IconData>{
@@ -31,10 +31,10 @@ const actionIcon = <String, IconData>{
 };
 
 const urgencyKo = <String, String>{
-  'immediate': '즉시 조치',
-  'danger': '위험',
-  'watch': '주의',
-  'normal': '정상',
+  'immediate': 'Immediate',
+  'danger': 'Danger',
+  'watch': 'Watch',
+  'normal': 'Normal',
 };
 
 Color riskColor(String level) {
@@ -53,3 +53,11 @@ Color riskColor(String level) {
 String symptomLabel(String s) => symptomKo[s] ?? s;
 String actionLabel(String a) => actionKo[a] ?? a;
 String urgencyLabel(String u) => urgencyKo[u] ?? u;
+
+/// 위험도 등급 정렬용 순위 (높을수록 심각).
+int urgencyRank(String u) => switch (u) {
+      'immediate' => 3,
+      'danger' => 2,
+      'watch' => 1,
+      _ => 0,
+    };
