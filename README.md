@@ -39,8 +39,6 @@ The app monitors multiple tanks, draws per-fish bounding boxes with the predicte
 |---|---|---|
 | ![Ulcer](docs/screenshots/03_detection_ulcer.png) | ![Results](docs/screenshots/04_results_list.png) | ![Lymphocystis](docs/screenshots/05_diagnosis_lymphocystis.png) |
 
-</details>
-
 ---
 
 ## System Architecture
