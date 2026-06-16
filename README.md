@@ -156,9 +156,3 @@ A risk score combines per-symptom severity, the share of diseased fish in a tank
 
 ---
 
-## References
-
-1. World Organisation for Animal Health (WOAH), "Acting for better aquatic animal health and welfare worldwide," Apr. 3, 2022. [Online]. Available: https://www.woah.org/en/blog/2022/04/03/acting-for-better-aquatic-animal-health-and-welfare-worldwide/
-2. Ministry of Oceans and Fisheries (MOF), Republic of Korea. [Online]. Available: https://mods.go.kr/board.es?mid=a10301010000&bid=225&act=view&list_no=430057
-
-
