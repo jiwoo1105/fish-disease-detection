@@ -25,6 +25,11 @@ Yet many farms still rely on **manual visual inspection** of hundreds of thousan
 
 The result is an objective, standardized, real-time anomaly index that lets farmers act early instead of reacting to mass mortality. The same logic ships as an offline mobile app so it works at the tank-side without a server connection.
 
+### References
+
+1. World Organisation for Animal Health (WOAH), "Acting for better aquatic animal health and welfare worldwide," Apr. 3, 2022. [Online]. Available: https://www.woah.org/en/blog/2022/04/03/acting-for-better-aquatic-animal-health-and-welfare-worldwide/
+2. Ministry of Oceans and Fisheries (MOF), Republic of Korea. [Online]. Available: https://mods.go.kr/board.es?mid=a10301010000&bid=225&act=view&list_no=430057
+
 ---
 
 ## Demo
