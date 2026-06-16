@@ -271,7 +271,3 @@ A risk score combines per-symptom severity, the share of diseased fish in a tank
 **Mobile:** Flutter / Dart, `ultralytics_yolo` (on-device TFLite/CoreML)
 **Data:** AIHub Olive Flounder Disease Dataset
 
-
-## License
-
-_`<TODO: choose a license, e.g. MIT>`_
