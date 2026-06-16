@@ -41,6 +41,8 @@ class DiseaseConfig {
           'name': m['name'] as String,
           'probability': (m['probability'] as num).toDouble(),
           'contagious': (m['contagious'] as bool?) ?? false,
+          'pathogen': m['pathogen'] as String? ?? '',
+          'mortality': m['mortality_rate'] as String? ?? '',
         });
       }
       sdm[entry.key as String] = list;
@@ -52,8 +54,13 @@ class DiseaseConfig {
       final m = entry.value as YamlMap;
       dr[entry.key as String] = {
         'action': m['action'] as String? ?? 'MONITOR',
-        'temperature': m['temperature'] as String? ?? '유지',
+        'temperature': m['temperature'] as String? ?? 'Maintain',
         'detail': m['detail'] as String? ?? '',
+        'steps': (m['steps'] as YamlList?)
+                ?.map((e) => e.toString())
+                .toList() ??
+            const <String>[],
+        'warning': m['warning'] as String? ?? '',
         'urgency': m['urgency'] as String? ?? 'watch',
         'isolate': (m['isolate'] as bool?) ?? false,
       };
@@ -104,20 +111,51 @@ class DiseaseConfig {
     final diseaseName = top['name'] as String;
     final diseaseConf = _round3(confidence * (top['probability'] as double));
 
-    final resp = diseaseResponse[diseaseName];
     return (
       likelyDisease: diseaseName,
       diseaseConfidence: diseaseConf,
       contagious: top['contagious'] as bool,
-      response: resp == null
-          ? null
-          : DiseaseResponse(
-              action: resp['action'] as String,
-              temperature: resp['temperature'] as String,
-              detail: resp['detail'] as String,
-              urgency: resp['urgency'] as String,
-              isolate: resp['isolate'] as bool,
-            ),
+      response: _responseFor(diseaseName),
+    );
+  }
+
+  DiseaseResponse? _responseFor(String diseaseName) {
+    final resp = diseaseResponse[diseaseName];
+    if (resp == null) return null;
+    return DiseaseResponse(
+      action: resp['action'] as String,
+      temperature: resp['temperature'] as String,
+      detail: resp['detail'] as String,
+      steps: (resp['steps'] as List).cast<String>(),
+      warning: resp['warning'] as String,
+      urgency: resp['urgency'] as String,
+      isolate: resp['isolate'] as bool,
+    );
+  }
+
+  /// 증상 → 표시용 가이드(대표 질병 + 병원체/폐사율 + 대응).
+  ({
+    String disease,
+    String pathogen,
+    String mortality,
+    bool contagious,
+    DiseaseResponse? response,
+  })? symptomGuide(String symptom) {
+    if (symptom == 'normal' || !symptomDiseaseMap.containsKey(symptom)) {
+      return null;
+    }
+    final diseases = symptomDiseaseMap[symptom]!;
+    final top = diseases.reduce(
+      (a, b) => (a['probability'] as double) >= (b['probability'] as double)
+          ? a
+          : b,
+    );
+    return (
+      disease: top['name'] as String,
+      pathogen: top['pathogen'] as String,
+      mortality: top['mortality'] as String,
+      contagious: top['contagious'] as bool,
+      response: _responseFor(top['name'] as String),
     );
   }
 

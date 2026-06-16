@@ -27,115 +27,246 @@ symptom_code_map:
 
 # 클래스별 데이터 밸런싱 목표
 balance_targets:
-  normal: 5000
-  hemorrhage: 5000
-  white_spot: 5000
-  tumor: 2400         # 전체 사용
-  color_change: 5000
-  emaciation: 2000    # 증강 포함
-  ulcer: 2000         # 증강 포함
+  normal: 2000
+  hemorrhage: 2000
+  white_spot: 2000
+  tumor: 1518         # 전체 사용
+  color_change: 2000
+  emaciation: 134     # 전체 사용
+  ulcer: 274          # 전체 사용
 
 # 증상 → 질병 매핑
 symptom_disease_map:
   white_spot:
-    - name: 스쿠티카병
+    - name: Scuticociliatosis
       probability: 0.7
       contagious: true
-    - name: 백점병
+      pathogen: "Ciliate Miamiensis avidus"
+      lethal: true
+      mortality_rate: "50-90%"
+    - name: White spot disease
       probability: 0.3
       contagious: true
+      pathogen: "Ciliate Cryptocaryon irritans"
+      lethal: true
+      mortality_rate: "30-70%"
   hemorrhage:
-    - name: VHS(바이러스성출혈성패혈증)
+    - name: VHS (Viral Hemorrhagic Septicemia)
       probability: 0.4
       contagious: true
-    - name: 비브리오병
+      pathogen: "VHS virus (Novirhabdovirus)"
+      lethal: true
+      mortality_rate: "30-70%"
+    - name: Vibriosis
       probability: 0.35
       contagious: true
-    - name: 연쇄구균증
+      pathogen: "Vibrio anguillarum and other Vibrio spp."
+      lethal: true
+      mortality_rate: "20-50%"
+    - name: Streptococcosis
       probability: 0.25
       contagious: true
+      pathogen: "Streptococcus iniae/parauberis"
+      lethal: true
+      mortality_rate: "20-40%"
   color_change:
-    - name: 스쿠티카병
+    - name: Scuticociliatosis
       probability: 0.4
       contagious: true
-    - name: 비브리오병
+      pathogen: "Ciliate Miamiensis avidus"
+      lethal: true
+      mortality_rate: "50-90%"
+    - name: Vibriosis
       probability: 0.35
       contagious: true
-    - name: 기타
+      pathogen: "Vibrio bacteria"
+      lethal: true
+      mortality_rate: "20-50%"
+    - name: Stress-induced color change
       probability: 0.25
       contagious: false
+      pathogen: "None (environmental stress)"
+      lethal: false
+      mortality_rate: "Low"
   tumor:
-    - name: 림포시스티스병
+    - name: Lymphocystis disease
       probability: 0.9
       contagious: false
+      pathogen: "Lymphocystivirus (family Iridoviridae)"
+      lethal: false
+      mortality_rate: "<1%"
   ulcer:
-    - name: 비브리오병
+    - name: Vibriosis
       probability: 0.6
       contagious: true
-    - name: 에드워드병
+      pathogen: "Vibrio anguillarum/vulnificus"
+      lethal: true
+      mortality_rate: "20-50%"
+    - name: Edwardsiellosis
       probability: 0.4
       contagious: true
+      pathogen: "Edwardsiella tarda"
+      lethal: true
+      mortality_rate: "30-60%"
   emaciation:
-    - name: 여윔병
-      probability: 0.8
+    - name: Emaciation disease
+      probability: 0.5
       contagious: false
+      pathogen: "None (malnutrition, chronic stress)"
+      lethal: false
+      mortality_rate: "<10%"
+    - name: Internal parasite infection
+      probability: 0.3
+      contagious: false
+      pathogen: "Gut parasites (e.g., nematodes)"
+      lethal: false
+      mortality_rate: "10-20%"
+    - name: Chronic bacterial infection
+      probability: 0.2
+      contagious: true
+      pathogen: "Various bacteria (chronic)"
+      lethal: true
+      mortality_rate: "10-30%"
 
-# 질병 → 대응 가이드
+# Disease → response guide
 disease_response:
-  스쿠티카병:
+  Scuticociliatosis:
     action: LOWER_TEMPERATURE
-    temperature: "18도 이하로 낮추기"
-    detail: "수온이 높을수록 충의 증식과 폐사 증가. 즉시 감염 개체 격리, 사육밀도 낮추기."
+    temperature: "Lower below 18°C immediately"
     urgency: immediate
     isolate: true
-  VHS(바이러스성출혈성패혈증):
+    steps:
+      - "Immediately isolate infected fish in a separate tank"
+      - "Lower water temperature below 18°C (suppresses ciliate growth)"
+      - "Formalin bath at 100 ppm for 30-60 min"
+      - "Reduce stocking density (overcrowding is the main cause)"
+      - "Fully replace tank water + disinfect equipment"
+      - "Do not share nets/hoses between tanks"
+    warning: "Mortality 50-90%. Spreads very fast; can transmit within the same tank in hours."
+  VHS (Viral Hemorrhagic Septicemia):
     action: RAISE_TEMPERATURE
-    temperature: "20도 이상으로 올리기"
-    detail: "저수온기 질병. 수온 15도 이상에서 폐사율 감소. 감염 수조 격리, 기구 소독."
+    temperature: "Raise above 20°C"
     urgency: immediate
     isolate: true
-  비브리오병:
+    steps:
+      - "Immediately isolate the infected tank (tank-level isolation)"
+      - "Raise temperature above 20°C (mortality drops sharply above 15°C)"
+      - "Antibiotics are ineffective (viral) — temperature control is key"
+      - "Fully disinfect drainage/equipment of the infected tank"
+      - "Remove dead fish immediately (prevents viral spread)"
+      - "Stop or reduce feeding"
+    warning: "Notifiable disease. Mortality 30-70%. Concentrated in cold season (10-15°C). No vaccine."
+  Vibriosis:
     action: ISOLATE_AND_TREAT
-    temperature: "유지"
-    detail: "감염 어체 격리, 항생제 투여 고려. 수질 관리 강화."
+    temperature: "Keep below 25°C"
     urgency: danger
     isolate: true
-  연쇄구균증:
+    steps:
+      - "Immediately isolate infected fish"
+      - "Oral antibiotics: oxytetracycline 50 mg/kg body weight, 5-7 days"
+      - "Or florfenicol 10 mg/kg body weight, 5 days"
+      - "Keep temperature below 25°C (high temp accelerates bacterial growth)"
+      - "Strengthen water quality management — check ammonia and nitrite"
+      - "Add immune boosters (vitamin C, etc.) to feed"
+      - "Keep the tank clean to prevent secondary wound infection"
+    warning: "Common in warm season (above 25°C). Mortality 20-50%. Spreads via shared equipment."
+  Streptococcosis:
     action: ISOLATE_AND_TREAT
-    temperature: "유지"
-    detail: "감염 어체 격리. 수온 관리 및 항생제 치료."
+    temperature: "Maintain"
     urgency: danger
     isolate: true
-  림포시스티스병:
+    steps:
+      - "Immediately isolate infected fish"
+      - "Antibiotics: amoxicillin or erythromycin"
+      - "Avoid sudden temperature changes (cause of weakened immunity)"
+      - "Reduce stocking density"
+      - "Adjust feeding amount (reduce digestive burden)"
+    warning: "Common in warm season (above 20°C). Mortality 20-40%. May involve exophthalmia and abdominal swelling."
+  Lymphocystis disease:
     action: MONITOR
-    temperature: "유지"
-    detail: "자연 치유 가능. 스트레스 줄이고 수질 관리에 집중."
+    temperature: "Maintain"
     urgency: watch
     isolate: false
-  여윔병:
+    steps:
+      - "Isolation unnecessary — low contagiousness and near-zero lethality"
+      - "Self-healing possible (resolves naturally over weeks to months)"
+      - "Remove stress factors (overcrowding, poor water quality, sudden changes)"
+      - "Focus on water quality — monitor dissolved oxygen, pH, ammonia"
+      - "Separate severe individuals for appearance issues at shipping"
+      - "No specific treatment"
+    warning: "Lethality below 1%. Main issue is reduced market value. May recur under stress."
+  Emaciation disease:
     action: IMPROVE_NUTRITION
-    temperature: "유지"
-    detail: "사료 품질/양 확인. 밀도 줄이기."
+    temperature: "Maintain"
     urgency: watch
     isolate: false
-  백점병:
+    steps:
+      - "Isolation unnecessary — non-contagious"
+      - "Check feed quality/amount/frequency"
+      - "Feed weak individuals separately and sufficiently"
+      - "Reduce stocking density (weak fish lose feeding competition)"
+      - "Test for internal parasites (gut parasites may be the cause)"
+      - "Feed vitamin/mineral-supplemented feed"
+    warning: "Non-contagious but can be fatal if neglected. Improving the feeding-competition environment is key."
+  White spot disease:
     action: TREAT
-    temperature: "수온 점진적 상승 (25~28도)"
-    detail: "약욕 처리. 수질 관리 강화."
+    temperature: "Gradually raise (25-28°C)"
     urgency: danger
     isolate: true
-  기타:
+    steps:
+      - "Isolate infected fish"
+      - "Gradually raise temperature to 25-28°C (accelerates parasite life cycle → boosts bath efficacy)"
+      - "Formalin bath 100-200 ppm for 30-60 min"
+      - "Or use copper-based medication"
+      - "Repeat bath every 3-5 days (matched to parasite life cycle)"
+      - "Strengthen water quality management, thorough water changes"
+    warning: "Highly contagious. Mortality 30-70%. Raising temperature + bath together is most effective."
+  Other:
     action: MONITOR
-    temperature: "유지"
-    detail: "정확한 원인 파악 필요. 수질/사료/환경 점검 후 지속 관찰."
+    temperature: "Maintain"
     urgency: watch
     isolate: false
-  에드워드병:
+    steps:
+      - "Full water test (temperature, pH, ammonia, dissolved oxygen, salinity)"
+      - "Check feed/environment change history"
+      - "Record symptom changes daily"
+      - "Request expert diagnosis if it worsens within 48 hours"
+    warning: "Cause unknown. Observe, but consult a fish veterinarian immediately if it worsens."
+  Edwardsiellosis:
     action: ISOLATE_AND_TREAT
-    temperature: "유지"
-    detail: "내장 출혈, 패혈증 유발. 감염 어체 즉시 격리, 항생제 투여 검토."
+    temperature: "Keep below 25°C"
     urgency: danger
     isolate: true
+    steps:
+      - "Immediately isolate infected fish"
+      - "Antibiotics: florfenicol 10 mg/kg body weight, 5-7 days"
+      - "Or oral oxytetracycline"
+      - "Keep temperature below 25°C (high temp accelerates bacterial growth)"
+      - "Remove dead fish immediately (prevents bacterial spread in water)"
+      - "No cross-use of equipment between tanks"
+    warning: "Causes internal hemorrhage and septicemia. Mortality 30-60%. Common in warm season (above 25°C)."
+  Internal parasite infection:
+    action: TREAT
+    temperature: "Maintain"
+    urgency: watch
+    isolate: false
+    steps:
+      - "Confirm via microscopic exam of gut parasites"
+      - "Oral anthelmintic such as praziquantel"
+      - "Mix into feed (dose by body weight)"
+      - "Recheck after 2 weeks to confirm efficacy"
+    warning: "Non-contagious but chronically stunts growth. Regular deworming is important."
+  Chronic bacterial infection:
+    action: ISOLATE_AND_TREAT
+    temperature: "Maintain"
+    urgency: danger
+    isolate: true
+    steps:
+      - "Isolate infected fish"
+      - "Administer an appropriate antibiotic after sensitivity testing"
+      - "Strengthen water quality management"
+      - "Feed immune-boosting feed"
+    warning: "Chronic infection risks antibiotic resistance. Sensitivity testing is essential."
 
 # 위험도 점수 (증상별 심각도)
 symptom_severity:
