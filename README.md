@@ -23,12 +23,6 @@ In high-density olive flounder farms, disease spreads within hours and can wipe 
 
 The result is an objective, standardized, real-time anomaly index that lets farmers act early instead of reacting to mass mortality. The same logic ships as an offline mobile app so it works at the tank-side without a server connection.
 
-**Key contributions**
-- 2-stage *detect → classify* vision pipeline tuned for turbid water and low-light indoor tanks.
-- A curated **symptom → disease → response** knowledge base (`classes.yaml`) co-designed with aquaculture disease references.
-- Risk scoring that fuses visual symptoms with optional **water-quality sensors** (temperature, DO, pH, salinity).
-- Two deployment targets from one model set: a **FastAPI** service and an **on-device Flutter** app.
-
 ---
 
 ## Demo
@@ -52,46 +46,31 @@ The app monitors multiple tanks, draws per-fish bounding boxes with the predicte
 
 ---
 
-## System Architecture / Block Diagram
+## System Architecture
 
-```
-                 ┌─────────────────────────────────────────────┐
-                 │   Camera / Image / Video  (tank monitoring)  │
-                 └───────────────────────┬─────────────────────┘
-                                         │
-        ┌────────────────────────────────▼────────────────────────────────┐
-        │  STAGE 1 — Object Detection  (YOLO det)                          │
-        │  Locate every flounder → bounding boxes                         │
-        └────────────────────────────────┬────────────────────────────────┘
-                                         │  crop each fish (remove background noise)
-        ┌────────────────────────────────▼────────────────────────────────┐
-        │  STAGE 2 — Symptom Classification  (YOLO cls)                    │
-        │  normal · hemorrhage · white_spot · tumor ·                      │
-        │  color_change · emaciation · ulcer                              │
-        └────────────────────────────────┬────────────────────────────────┘
-                                         │  (server only) optional Stage 2.5
-        ┌────────────────────────────────▼────────────────────────────────┐
-        │  STAGE 2.5 — Lesion Localization  (YOLO lesion_det) [optional]   │
-        └────────────────────────────────┬────────────────────────────────┘
-                                         │
-        ┌────────────────────────────────▼────────────────────────────────┐
-        │  STAGE 3 — Disease Mapping & Risk Scoring  (classes.yaml)        │
-        │  symptom → suspected disease (probability, pathogen, mortality)  │
-        │  + water-quality sensors → per-fish & per-tank risk score        │
-        └────────────────────────────────┬────────────────────────────────┘
-                                         │
-        ┌────────────────────────────────▼────────────────────────────────┐
-        │  OUTPUT — Risk level (watch/danger/immediate) + response guide   │
-        │  FastAPI JSON  ·  Annotated image  ·  On-device app alert card   │
-        └─────────────────────────────────────────────────────────────────┘
-```
+![System Architecture](docs/architecture.png)
 
-**Two deployment targets share the same models:**
+The system is organized into four layers — data & preprocessing, AI model training, cloud inference & service, and the client application. At its core is a **2-stage deep-learning pipeline (S1 + S2)**, followed by a rule-based diagnosis step that turns the predicted symptom into an actionable response.
 
-| | Pipeline | Runtime | Models |
-|---|---|---|---|
-| **Server** (`AI/server`) | 3-stage (det → cls → lesion) + mapping | FastAPI / Uvicorn | `.pt` (PyTorch) |
-| **Mobile** (`FRONT`) | 2-stage (det → cls) + mapping | On-device, offline | `.tflite` (float32) |
+### Stage 1 — Object Detection (fish localization)
+
+First, the camera captures the whole tank, and the first job is to find where each individual flounder is. A **YOLO26 detection model** draws a bounding box around every fish in the frame. Aquaculture tanks are hard environments — the water is turbid, fish overlap each other, and lighting is uneven — and this model's role is to separate each fish under exactly those conditions.
+
+Each detected box is then **cropped** out of the image. Judging disease directly from the full tank image would fail because background noise (water color, ripples, tank floor) overwhelms the signal — so only the cropped fish is passed on to Stage 2.
+
+### Stage 2 — Symptom Classification
+
+Each cropped fish image is fed to a **YOLO26 classification model** that decides which of **7 symptom classes** it belongs to:
+
+`normal` · `hemorrhage` (출혈) · `white_spot` (백점) · `tumor` (반점/결절) · `color_change` (체색변화) · `emaciation` (여윔) · `ulcer` (궤양).
+
+In other words, this model answers *"which symptom does this fish have?"*. A confidence threshold is applied: if the top prediction is below ~50%, confidence is considered insufficient and the fish is treated as `normal`. When the result is **not** `normal` — i.e. a disease is suspected — it is handed to the diagnosis step.
+
+### Diagnosis & Risk (rule-based)
+
+The predicted symptom is mapped through `classes.yaml` to its most likely disease (with pathogen, mortality rate, and step-by-step response actions) and combined with optional water-quality sensors (temperature, DO, pH, salinity) to compute a per-fish and per-tank risk level (`watch / danger / immediate`).
+
+> The same S1 + S2 models run in two places: a **FastAPI cloud server** (`.pt`, PyTorch) and a fully **on-device Flutter app** (`.tflite`, offline-capable).
 
 ---
 
@@ -176,13 +155,13 @@ fish-disease-detection/
 │   ├── configs/classes.yaml     # symptom↔disease↔response + risk rules (knowledge base)
 │   ├── scripts/
 │   │   ├── prepare_multiclass.py    # AIHub JSON → YOLO dataset (7-class)
-│   │   ├── train_det.py / train_cls.py / train_seg.py / train_lesion_det.py
-│   │   ├── inference.py             # 3-stage inference (image / video)
+│   │   ├── train_det.py / train_cls.py    # Stage 1 / Stage 2 training
+│   │   ├── inference.py             # 2-stage inference (image / video)
 │   │   ├── disease_mapper.py        # symptom → disease
 │   │   ├── risk_scorer.py           # sensor & tank risk scoring
 │   │   └── run_all.py               # prepare → train end-to-end
 │   ├── server/main.py           # FastAPI app
-│   ├── models/{det,cls,seg,lesion_det}/best_*.pt
+│   ├── models/{det,cls}/best_*.pt   # Stage 1 detection + Stage 2 classification
 │   └── PROJECT_PLAN.md
 ├── FRONT/                       # Flutter Android app "넙치닥터 / Flatfish Doctor"
 │   ├── lib/                     # det→crop→cls pipeline + disease config UI
@@ -220,7 +199,7 @@ uvicorn server.main:app --host 0.0.0.0 --port 8000
 
 | Method | Endpoint | Description |
 |---|---|---|
-| `POST` | `/api/analyze` | Upload an image (+ optional `temperature`, `do`, `ph`, `salinity`) → 2/3-stage inference → JSON result + annotated image (base64) |
+| `POST` | `/api/analyze` | Upload an image (+ optional `temperature`, `do`, `ph`, `salinity`) → 2-stage inference → JSON result + annotated image (base64) |
 | `GET`  | `/api/diseases/{symptom}` | Resolve a symptom to its candidate disease profiles |
 | `GET`  | `/api/classes` | List supported symptom classes |
 | `GET`  | `/api/health` | Health / model-load check |
@@ -257,9 +236,9 @@ A risk score combines per-symptom severity, the share of diseased fish in a tank
 
 ## Roadmap
 
-- **Visual-noise robustness** — turbid water, lighting changes, and dynamic swimming still cause normal tissue to be misread as lesions.
+- **Visual-noise robustness** — turbid water, lighting changes, and dynamic swimming still cause normal tissue to be misread as a symptom.
 - **Dataset refinement** — add more clean positive/negative samples to push Stage-1 mAP above the 0.45 target.
-- **Confidence-gate fix (app)** — the mobile app currently uses a high `0.85` classification gate as a stop-gap against false positives in turbid water; the proper fix is fine-tuning `best_cls.pt` on real tank imagery and restoring a normal threshold.
+- **Confidence-threshold tuning** — fine-tune `best_cls.pt` on real tank imagery so the Stage-2 confidence threshold can be set for the best precision/recall trade-off in turbid water.
 - **Edge deployment** — broaden TFLite/ONNX optimization for offline, low-power farm hardware.
 
 ---
