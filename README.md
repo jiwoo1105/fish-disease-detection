@@ -35,9 +35,6 @@ The result is an objective, standardized, real-time anomaly index that lets farm
 
 The app monitors multiple tanks, draws per-fish bounding boxes with the predicted symptom and confidence (green = normal, red/orange = diseased), computes a tank-level risk level (`watch / danger / immediate`), and pops a detailed diagnosis card with pathogen, mortality rate, and step-by-step response measures.
 
-<details>
-<summary>More screenshots</summary>
-
 | Detection (ulcer) | Detection results log | Diagnosis (Lymphocystis) |
 |---|---|---|
 | ![Ulcer](docs/screenshots/03_detection_ulcer.png) | ![Results](docs/screenshots/04_results_list.png) | ![Lymphocystis](docs/screenshots/05_diagnosis_lymphocystis.png) |
